@@ -1,4 +1,4 @@
-use super::notice_search::find;
+use super::notice_search::{find, select};
 use serde_json::{Value, json};
 use std::{fs, path::Path, process::Command};
 pub fn collect(output: &Path) -> Result<(), &'static str> {
@@ -35,12 +35,11 @@ pub fn collect(output: &Path) -> Result<(), &'static str> {
             "/tools/native-release/notices"
         ))
         .join(format!("{name}-{version}"));
-        let root = if find(original, 0)?.is_empty() && retained.is_dir() {
-            retained.as_path()
-        } else {
-            original
-        };
-        let files = find(root, 0)?;
+        let owner = Path::new(meta["workspace_root"].as_str().ok_or("metadata_failed")?)
+            .join("tools/native-release/notices")
+            .join(format!("{name}-{version}"));
+        let root = select(original, &[owner, retained])?;
+        let files = find(&root, 0)?;
         if files.is_empty() {
             eprintln!("missing license material: {name}@{version}");
             return Err("dependency_notice_missing");
@@ -54,7 +53,7 @@ pub fn collect(output: &Path) -> Result<(), &'static str> {
             {
                 return Err("notice_rejected");
             }
-            let relative = file.strip_prefix(root).map_err(|_| "notice_rejected")?;
+            let relative = file.strip_prefix(&root).map_err(|_| "notice_rejected")?;
             let target = destination.join(relative);
             fs::create_dir_all(target.parent().ok_or("notice_rejected")?)
                 .map_err(|_| "output_unavailable")?;

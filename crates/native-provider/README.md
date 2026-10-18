@@ -29,3 +29,9 @@ broker. Never label credential-signing or mutations as reads to fit this protoco
 Write workflows in existing TypeScript/Crowsi packages retain their separate
 approval path. This source-only crate has `publish=false`; source tests and GNU
 builds are not proof of registry distribution, musl or live-account acceptance.
+
+When an upstream crate omits its original license files, the build owner may
+retain those exact files under `tools/native-release/notices/<name>-<version>`
+with `NOTICE.source.json` recording the official commit, URLs and hashes.
+Packaged upstream notices take precedence. Missing material still stops packing;
+this fallback does not replace a license review or invent license text.

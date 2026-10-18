@@ -45,3 +45,38 @@ pub(super) fn find(path: &Path, depth: u8) -> Result<Vec<PathBuf>, &'static str>
     files.sort();
     Ok(files)
 }
+
+pub(super) fn select(original: &Path, retained: &[PathBuf]) -> Result<PathBuf, &'static str> {
+    if !find(original, 0)?.is_empty() {
+        return Ok(original.into());
+    }
+    for candidate in retained {
+        if candidate.is_dir() && !find(candidate, 0)?.is_empty() {
+            return Ok(candidate.clone());
+        }
+    }
+    Ok(original.into()) // Collection still fails closed when no material is available.
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn owner_notices_only_fill_missing_upstream_material() {
+        let temporary = tempfile::tempdir().unwrap();
+        let original = temporary.path().join("original");
+        let owner = temporary.path().join("owner");
+        fs::create_dir(&original).unwrap();
+        fs::create_dir(&owner).unwrap();
+        assert_eq!(
+            select(&original, std::slice::from_ref(&owner)).unwrap(),
+            original
+        );
+        fs::write(owner.join("LICENSE-MIT"), "retained original license").unwrap();
+        assert_eq!(
+            select(&original, std::slice::from_ref(&owner)).unwrap(),
+            owner
+        );
+        fs::write(original.join("LICENSE-MIT"), "upstream package license").unwrap();
+        assert_eq!(select(&original, &[owner]).unwrap(), original);
+    }
+}
