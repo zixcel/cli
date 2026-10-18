@@ -13,6 +13,7 @@ fn manifest_rejects_incompatible_unknown_conflicting_and_privileged_fields() {
     for (field, value) in [
         ("schema", json!("unknown")),
         ("namespace", json!("extensions")),
+        ("namespace", json!("api")),
         ("platform", json!("windows-x86_64")),
         ("credential_environment", json!(["LD_PRELOAD"])),
         ("timeout_ms", json!(40001)),

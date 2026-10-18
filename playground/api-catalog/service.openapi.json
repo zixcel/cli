@@ -1,0 +1,18 @@
+{
+  "openapi": "3.1.0",
+  "info": {"title": "Synthetic inspection service", "version": "1"},
+  "servers": [{"url": "https://service.example.invalid"}],
+  "paths": {
+    "/inspection": {
+      "get": {
+        "operationId": "sample.inspect",
+        "parameters": [
+          {"name": "mode", "in": "query", "required": true, "schema": {"type": "string"}},
+          {"name": "value", "in": "query", "schema": {"type": "string"}}
+        ],
+        "responses": {"200": {"description": "Inspection", "content": {"application/json": {"schema": {"$ref": "#/components/schemas/Inspection"}}}}}
+      }
+    }
+  },
+  "components": {"schemas": {"Inspection": {"type": "object", "properties": {"value": {"type": "string"}}}}}
+}

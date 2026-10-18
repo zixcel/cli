@@ -1,5 +1,7 @@
 #![forbid(unsafe_code)]
 //! Linux native extensions are trusted executable code, never automatically discovered or installed.
+mod api_command;
+pub mod api_spec;
 mod arguments;
 pub mod command_line;
 pub mod discovery;

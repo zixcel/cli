@@ -32,7 +32,7 @@ pub fn prompt(registry: &Registry, namespace: &str) -> Result<String> {
     Ok(result)
 }
 pub fn help(registry: &Registry) -> Result<String> {
-    let mut text="zix <provider> <operation> [--argument value]\n\nCommands: list, capabilities --format json, describe <provider>, prompt <provider>, extensions, version\n\nInstalled read-only providers:\n".to_owned();
+    let mut text="zix <provider> <operation> [--argument value]\n\nCommands: api (import, describe, diff, run), list, capabilities --format json, describe <provider>, prompt <provider>, extensions, version\n\nInstalled read-only providers:\n".to_owned();
     let value = capabilities(registry)?;
     for m in value["providers"]
         .as_array()
