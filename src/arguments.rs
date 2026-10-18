@@ -11,7 +11,7 @@ pub fn select<'a>(manifest: &'a Manifest, args: &[String]) -> Result<Selected<'a
     if args.len() > 40
         || args
             .iter()
-            .any(|v| v.len() > 512 || v.bytes().any(|b| b.is_ascii_control()))
+            .any(|v| v.len() > 2048 || v.bytes().any(|b| b.is_ascii_control()))
     {
         return Err(Error("invalid_arguments"));
     }
