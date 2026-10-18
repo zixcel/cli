@@ -1,0 +1,118 @@
+name: Release native binary
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: native-release-${{ github.repository }}
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.event.repository.private == false && github.repository == 'zixcel/cli'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      artifact: ${{ steps.upload.outputs.artifact-id }}
+      sha256: ${{ steps.digest.outputs.sha256 }}
+      filename: ${{ steps.digest.outputs.filename }}
+    env:
+      ZIX_RELEASE_SOURCE: ${{ github.sha }}
+      RELEASE_PACKAGE: zix-cli
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Require accepted main source and exact package tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$GITHUB_SHA" =~ ^[a-f0-9]{40}$ ]]
+          git fetch origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&status=success&head_sha=$GITHUB_SHA&per_page=100" --jq '.workflow_runs[].head_sha' > "$RUNNER_TEMP/accepted-shas"
+          grep -Fxq "$GITHUB_SHA" "$RUNNER_TEMP/accepted-shas"
+      - uses: dtolnay/rust-toolchain@686976e191b89faba57d3206551f0f330d8cb249
+        with:
+          toolchain: 1.97.1
+          targets: x86_64-unknown-linux-musl
+          components: rustfmt, clippy
+      - name: Verify version, tests and static analysis
+        run: |
+          set -euo pipefail
+          version="$(cargo metadata --no-deps --format-version=1 | jq -er '.packages[] | select(.name == env.RELEASE_PACKAGE) | .version')"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test "$GITHUB_REF_NAME" = "v$version"
+          cargo fmt --all --check
+          cargo test --locked --workspace --all-targets --all-features
+          cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+      - name: Build static Linux package and retain dependency notices
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends musl-tools
+          cargo build --locked --release -p zix-cli --bin zix --target x86_64-unknown-linux-musl
+          target/x86_64-unknown-linux-musl/release/zix version
+          cargo run --locked -p zix-cli --bin zix-package -- target/x86_64-unknown-linux-musl/release/zix release x86_64-unknown-linux-musl
+      - name: Bind prepared archive
+        id: digest
+        run: |
+          set -euo pipefail
+          cd release
+          sha256sum --check SHA256SUMS
+          test "$(find . -maxdepth 1 -name '*.tar.gz' | wc -l)" = 1
+          read -r digest filename < SHA256SUMS
+          [[ "$digest" =~ ^[a-f0-9]{64}$ ]]
+          [[ "$filename" =~ ^[a-z0-9.-]+-x86_64-unknown-linux-musl\.tar\.gz$ ]]
+          echo "sha256=$digest" >> "$GITHUB_OUTPUT"
+          echo "filename=$filename" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        id: upload
+        with:
+          name: native-${{ github.sha }}-${{ github.run_attempt }}
+          path: |
+            release/*.tar.gz
+            release/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30
+  publish:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          artifact-ids: ${{ needs.prepare.outputs.artifact }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/native
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: ${{ runner.temp }}/native/*.tar.gz
+      - name: Publish exact bytes once and read back
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ needs.prepare.outputs.sha256 }}
+          ARCHIVE: ${{ needs.prepare.outputs.filename }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/native"
+          test "$(sha256sum "$ARCHIVE" | cut -d' ' -f1)" = "$EXPECTED_SHA"
+          if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME" > "$RUNNER_TEMP/existing-release" 2> "$RUNNER_TEMP/release-error"; then
+            echo "Existing release: verify only, never replace."
+          else
+            grep -q "(HTTP 404)" "$RUNNER_TEMP/release-error"
+            test "$GITHUB_RUN_ATTEMPT" = 1
+            gh release create "$GITHUB_REF_NAME" "$ARCHIVE" SHA256SUMS --repo "$GITHUB_REPOSITORY" --verify-tag --target "$GITHUB_SHA" --title "$GITHUB_REF_NAME" --notes "Native Linux/WSL binary; source $GITHUB_SHA; SHA256 $EXPECTED_SHA."
+          fi
+          mkdir readback
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern "$ARCHIVE" --dir readback
+          test "$(sha256sum "readback/$ARCHIVE" | cut -d' ' -f1)" = "$EXPECTED_SHA"
