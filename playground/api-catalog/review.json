@@ -1,0 +1,11 @@
+{
+  "schema": "zix-api-review/v1",
+  "source_sha256": "38e6b2e61dbf24eac3f9fc0e9e1e8a191e417a25bd813b72f28632f022a42caf",
+  "format": "openapi",
+  "operations": [
+    {
+      "id": "sample.inspect",
+      "binding": null
+    }
+  ]
+}

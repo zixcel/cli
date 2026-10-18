@@ -1,4 +1,4 @@
-# Zix
+# Zixcel CLI (zix)
 
 One local entry point for explicitly installed provider tools. Zix verifies a registered manifest and native executable, then dispatches a bounded JSON request through the published Crowsi process adapter. No provider is discovered from PATH or installed by running a command.
 
@@ -14,6 +14,16 @@ zix prompt google
 ```
 
 The initial supported host is Linux x86_64, including WSL. The release binary does not require Node, Rust, gcloud, a sibling checkout, or a private registry. An unavailable release or provider is an error; there is no source-install or similarly named provider fallback.
+
+## API specifications
+
+Import selected OpenAPI or Google Discovery operations into a versioned catalog,
+review upstream contract changes, and bind operations to installed providers.
+[API architecture and update flow](docs/api-specifications.md) ·
+[Offline playground](playground/api-catalog/README.md).
+
+Catalogs do not execute arbitrary HTTP or grant permissions. Runtime bindings
+require both the reviewed catalog hash and the registered provider manifest hash.
 
 ## Boundaries
 

@@ -30,6 +30,7 @@ impl Manifest {
             || self.protocol != "zix-provider/v1"
             || !token(&self.namespace)
             || [
+                "api",
                 "help",
                 "list",
                 "capabilities",

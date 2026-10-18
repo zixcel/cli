@@ -15,6 +15,9 @@ pub async fn run(args: &[String]) -> Result<bool> {
         println!("zix {}", env!("CARGO_PKG_VERSION"));
         return Ok(true);
     }
+    if args.first().is_some_and(|a| a == "api") {
+        return crate::api_command::run(&args[1..]).await;
+    }
     let path = registry::location()?;
     if args.first().is_some_and(|a| a == "extensions") {
         extensions::run(&path, &args[1..])?;

@@ -5,7 +5,7 @@ edition = "2024"
 rust-version = "1.97"
 license = "Apache-2.0"
 repository = "https://github.com/zixcel/cli"
-description = "Explicitly registered, integrity-bound local provider commands"
+description = "Reviewed API catalogs and integrity-bound local provider commands"
 publish = false
 
 [[bin]]
@@ -22,7 +22,7 @@ resolver = "3"
 [dependencies]
 zixcel-bounded-io = { git = "https://github.com/zixcel/zixcel-contracts", rev = "24a7ec9e328987d931cf49dd97ca23a6ae50db2f" }
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
+serde_json = { version = "1.0", features = ["arbitrary_precision"] }
 sha2 = "0.11"
 rustix = { version = "1.1", features = ["fs", "process"] }
 crowsi-process-adapter = "=0.10.0"
