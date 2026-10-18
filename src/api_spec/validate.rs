@@ -9,6 +9,7 @@ impl Catalog {
         let mut ids = BTreeSet::new();
         if self.schema != "zix-api-catalog/v1"
             || !files::valid_digest(&self.source.sha256)
+            || !clean(&self.source.specification_version, 32)
             || !clean(&self.source.api, 256)
             || !clean(&self.source.version, 128)
             || self

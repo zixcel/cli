@@ -1,7 +1,7 @@
-use super::Format;
+use super::{Format, Source};
 use crate::{Error, Result};
 use serde_json::Value;
-pub(super) fn metadata(root: &Value, format: &Format) -> Result<(String, String, Option<String>)> {
+pub(super) fn metadata(root: &Value, format: &Format, sha256: &str) -> Result<Source> {
     let text = |v: &Value| {
         v.as_str()
             .map(str::to_owned)
@@ -19,18 +19,28 @@ pub(super) fn metadata(root: &Value, format: &Format) -> Result<(String, String,
             {
                 return Err(Error("unsupported_openapi_version"));
             }
-            Ok((
-                text(&root["info"]["title"])?,
-                text(&root["info"]["version"])?,
-                Some(version),
-            ))
+            Ok(Source {
+                format: format.clone(),
+                sha256: sha256.into(),
+                api: text(&root["info"]["title"])?,
+                version: text(&root["info"]["version"])?,
+                specification_version: version,
+                revision: None,
+            })
         }
         Format::Discovery => {
             if root["discoveryVersion"] != "v1" {
                 return Err(Error("unsupported_discovery_version"));
             }
             let revision = root.get("revision").map(text).transpose()?;
-            Ok((text(&root["name"])?, text(&root["version"])?, revision))
+            Ok(Source {
+                format: format.clone(),
+                sha256: sha256.into(),
+                api: text(&root["name"])?,
+                version: text(&root["version"])?,
+                specification_version: "v1".into(),
+                revision,
+            })
         }
     }
 }

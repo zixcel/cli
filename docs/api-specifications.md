@@ -12,7 +12,8 @@ not become authorization policies or executable code.
    retain upstream notices with any redistributed specification. Never include
    account data or credentials in a specification or review file.
 2. Pin the exact source SHA256 in a `zix-api-review/v1` file and select operation
-   IDs. Import only selected operations and their local reference closure.
+   IDs. API version, specification dialect version and source revision are
+   recorded separately. Import only selected operations and their local reference closure.
 3. Review method, path, parameters, scopes, request/response schemas and global
    context in the resulting catalog. A null binding makes an operation visible
    but not executable. No HTTP verb is interpreted as an effect or permission.

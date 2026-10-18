@@ -26,7 +26,7 @@ pub fn import(source: &[u8], review: &[u8]) -> Result<Catalog> {
         return Err(Error("api_source_or_review_mismatch"));
     }
     let root = json::parse(source, SPEC_LIMIT)?;
-    let (api, version, revision) = metadata::metadata(&root, &review.format)?;
+    let source_metadata = metadata::metadata(&root, &review.format, &review.source_sha256)?;
     let mut operations = Vec::new();
     let mut ids = BTreeSet::new();
     let mut encoded_size = 0;
@@ -49,13 +49,7 @@ pub fn import(source: &[u8], review: &[u8]) -> Result<Catalog> {
     operations.sort_by(|a, b| a.id.cmp(&b.id));
     let catalog = Catalog {
         schema: "zix-api-catalog/v1".into(),
-        source: Source {
-            format: review.format,
-            sha256: review.source_sha256,
-            api,
-            version,
-            revision,
-        },
+        source: source_metadata,
         operations,
     };
     catalog.validate()?;

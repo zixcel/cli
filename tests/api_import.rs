@@ -6,6 +6,9 @@ use zix_cli::api_spec;
 fn openapi_import_selects_referenced_contracts_without_granting_authority() {
     let catalog = compile(&source());
     assert_eq!(catalog.operations.len(), 1);
+    assert_eq!(catalog.source.version, "1");
+    assert_eq!(catalog.source.specification_version, "3.1.0");
+    assert!(catalog.source.revision.is_none());
     let op = &catalog.operations[0];
     assert_eq!(op.method, "GET");
     assert_eq!(op.path, "/inspection");

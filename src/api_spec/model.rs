@@ -33,6 +33,7 @@ pub struct Review {
 #[serde(deny_unknown_fields)]
 pub struct Source {
     pub format: Format,
+    pub specification_version: String,
     pub sha256: String,
     pub api: String,
     pub version: String,
