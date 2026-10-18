@@ -1,5 +1,7 @@
 //! Build-time only; no registry publishing, tag creation or credential use.
 use std::{path::Path, process::ExitCode};
+/// For existing owner packaging formats that also need the same retained notices.
+pub use zix_cli::release_bundle::licenses::collect as collect_notices;
 pub fn main(package: &str, version: &str, repository: &str) -> ExitCode {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
     let result = (|| {
