@@ -21,7 +21,11 @@ pub fn prompt(registry: &Registry, namespace: &str) -> Result<String> {
     for c in &m.commands {
         result.push_str(&format!("zix {} {}", m.namespace, c.words.join(" ")));
         for a in &c.arguments {
-            result.push_str(&format!(" --{} '<value>'", a.name));
+            if a.required {
+                result.push_str(&format!(" --{} '<value>'", a.name));
+            } else {
+                result.push_str(&format!(" [--{} '<value>']", a.name));
+            }
         }
         result.push('\n');
     }
