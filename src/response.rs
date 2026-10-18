@@ -49,7 +49,7 @@ pub(crate) fn response(
     }
     Ok(value)
 }
-fn contains_secret(value: &Value, secrets: &[String]) -> bool {
+pub fn contains_secret(value: &Value, secrets: &[String]) -> bool {
     let includes = |text: &str| secrets.iter().any(|secret| text.contains(secret));
     match value {
         Value::String(s) => includes(s),

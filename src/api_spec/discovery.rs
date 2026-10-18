@@ -2,7 +2,11 @@ use super::{Format, Operation, Selection, references};
 use crate::{Error, Result};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
-pub fn select(root: &Value, selection: &Selection) -> Result<Operation> {
+pub fn select(
+    root: &Value,
+    selection: &Selection,
+    documents: &super::documents::Documents<'_>,
+) -> Result<Operation> {
     let mut found = BTreeMap::new();
     methods(root, &mut found)?;
     let contract = found
@@ -16,7 +20,7 @@ pub fn select(root: &Value, selection: &Selection) -> Result<Operation> {
         .ok_or(Error("invalid_discovery_path"))?;
     let context = json!({"rootUrl":root.get("rootUrl"),"servicePath":root.get("servicePath"),
         "baseUrl":root.get("baseUrl"),"parameters":root.get("parameters"),"auth":root.get("auth")});
-    let references = references::closure(root, &[contract, &context], &Format::Discovery)?;
+    let references = references::closure(&[contract, &context], &Format::Discovery, documents)?;
     Ok(Operation {
         id: selection.id.clone(),
         method: method.into(),

@@ -4,11 +4,12 @@ use serde_json::Value;
 pub(super) fn metadata(root: &Value, format: &Format, sha256: &str) -> Result<Source> {
     let text = |v: &Value| {
         v.as_str()
+            .filter(|s| !s.is_empty() && s.len() <= 256 && !s.chars().any(char::is_control))
             .map(str::to_owned)
             .ok_or(Error("invalid_api_metadata"))
     };
     match format {
-        Format::Openapi => {
+        Format::Openapi | Format::OpenapiYaml => {
             let version = text(&root["openapi"])?;
             let parts = version.split('.').collect::<Vec<_>>();
             if parts.len() != 3
@@ -24,7 +25,24 @@ pub(super) fn metadata(root: &Value, format: &Format, sha256: &str) -> Result<So
                 sha256: sha256.into(),
                 api: text(&root["info"]["title"])?,
                 version: text(&root["info"]["version"])?,
+                source_uri: None,
+                reference_sources: Default::default(),
                 specification_version: version,
+                revision: None,
+            })
+        }
+        Format::Swagger => {
+            if root["swagger"] != "2.0" {
+                return Err(Error("unsupported_swagger_version"));
+            }
+            Ok(Source {
+                format: format.clone(),
+                sha256: sha256.into(),
+                api: text(&root["info"]["title"])?,
+                version: text(&root["info"]["version"])?,
+                source_uri: None,
+                reference_sources: Default::default(),
+                specification_version: "2.0".into(),
                 revision: None,
             })
         }
@@ -38,6 +56,8 @@ pub(super) fn metadata(root: &Value, format: &Format, sha256: &str) -> Result<So
                 sha256: sha256.into(),
                 api: text(&root["name"])?,
                 version: text(&root["version"])?,
+                source_uri: None,
+                reference_sources: Default::default(),
                 specification_version: "v1".into(),
                 revision,
             })

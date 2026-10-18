@@ -1,9 +1,9 @@
 use crate::{Error, Result};
 use serde::de::{self, MapAccess, SeqAccess, Visitor};
 use serde::{Deserialize, Deserializer};
-use serde_json::{Map, Number, Value};
+use serde_json::{Map, Value};
 use std::fmt;
-struct Unique(Value);
+pub(super) struct Unique(pub(super) Value);
 impl<'de> Deserialize<'de> for Unique {
     fn deserialize<D: Deserializer<'de>>(d: D) -> std::result::Result<Self, D::Error> {
         struct Json;
@@ -21,10 +21,10 @@ impl<'de> Deserialize<'de> for Unique {
             fn visit_u64<E: de::Error>(self, v: u64) -> std::result::Result<Unique, E> {
                 Ok(Unique(Value::Number(v.into())))
             }
-            fn visit_f64<E: de::Error>(self, v: f64) -> std::result::Result<Unique, E> {
-                Number::from_f64(v)
-                    .map(|n| Unique(Value::Number(n)))
-                    .ok_or_else(|| E::custom("number"))
+            fn visit_f64<E: de::Error>(self, _v: f64) -> std::result::Result<Unique, E> {
+                Err(E::custom(
+                    "floating YAML scalars require explicit string representation",
+                ))
             }
             fn visit_str<E: de::Error>(self, v: &str) -> std::result::Result<Unique, E> {
                 Ok(Unique(Value::String(v.into())))
@@ -66,23 +66,28 @@ pub fn parse(bytes: &[u8], limit: usize) -> Result<Value> {
     let Unique(_) = serde_json::from_slice(bytes).map_err(|_| Error("invalid_api_json"))?;
     let value = serde_json::from_slice(bytes).map_err(|_| Error("invalid_api_json"))?;
     let mut nodes = 0;
-    inspect(&value, 0, &mut nodes)?;
+    let maximum = if limit > super::SPEC_LIMIT {
+        2_000_000
+    } else {
+        200_000
+    };
+    inspect(&value, 0, &mut nodes, maximum)?;
     Ok(value)
 }
-fn inspect(value: &Value, depth: usize, nodes: &mut usize) -> Result<()> {
+fn inspect(value: &Value, depth: usize, nodes: &mut usize, maximum: usize) -> Result<()> {
     *nodes += 1;
-    if depth > 64 || *nodes > 200_000 {
+    if depth > 64 || *nodes > maximum {
         return Err(Error("api_structure_limit"));
     }
     match value {
         Value::Array(a) => {
             for v in a {
-                inspect(v, depth + 1, nodes)?;
+                inspect(v, depth + 1, nodes, maximum)?;
             }
         }
         Value::Object(o) => {
             for v in o.values() {
-                inspect(v, depth + 1, nodes)?;
+                inspect(v, depth + 1, nodes, maximum)?;
             }
         }
         _ => {}

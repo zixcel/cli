@@ -22,6 +22,20 @@ impl Catalog {
         {
             return Err(Error("invalid_api_catalog"));
         }
+        if let Some(uri) = &self.source.source_uri {
+            super::documents::uri(uri)?;
+        }
+        if self.source.reference_sources.len() > 16
+            || (!self.source.reference_sources.is_empty() && self.source.source_uri.is_none())
+        {
+            return Err(Error("invalid_api_catalog"));
+        }
+        for (uri, hash) in &self.source.reference_sources {
+            super::documents::uri(uri)?;
+            if !files::valid_digest(hash) {
+                return Err(Error("invalid_api_catalog"));
+            }
+        }
         for o in &self.operations {
             if !clean(&o.id, 160)
                 || !ids.insert(&o.id)
@@ -32,7 +46,7 @@ impl Catalog {
                 || !clean(&o.path, 2048)
                 || !o.contract.is_object()
                 || !o.context.is_object()
-                || o.references.len() > 128
+                || o.references.len() > 1024
             {
                 return Err(Error("invalid_api_operation"));
             }

@@ -1,0 +1,20 @@
+[package]
+name = "zix-native-provider"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+license = "Apache-2.0"
+repository = "https://github.com/zixcel/cli"
+description = "Reviewed read-only provider profiles over the bounded zix native protocol"
+publish = false
+[dependencies]
+zix-cli = { path = "../.." }
+crowsi-provider-read-http = { git = "https://github.com/crowsi-net/crowsi-transport-foundation", rev = "f5edce4df5b58e90224ad05390d79fe2f571b4a5" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+url = "2.5"
+zeroize = "1.8"
+[lints.rust]
+unsafe_code = "forbid"
+[lints.clippy]
+all = "warn"

@@ -6,6 +6,8 @@ use std::collections::BTreeMap;
 #[serde(rename_all = "snake_case")]
 pub enum Format {
     Openapi,
+    OpenapiYaml,
+    Swagger,
     Discovery,
 }
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -28,6 +30,12 @@ pub struct Review {
     pub source_sha256: String,
     pub format: Format,
     pub operations: Vec<Selection>,
+    #[serde(default)]
+    pub source_uri: Option<String>,
+    #[serde(default)]
+    pub reference_sources: BTreeMap<String, String>,
+    #[serde(default)]
+    pub reference_limit: Option<usize>,
 }
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]
@@ -38,6 +46,10 @@ pub struct Source {
     pub api: String,
     pub version: String,
     pub revision: Option<String>,
+    #[serde(default)]
+    pub source_uri: Option<String>,
+    #[serde(default)]
+    pub reference_sources: BTreeMap<String, String>,
 }
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]

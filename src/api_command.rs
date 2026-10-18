@@ -23,15 +23,26 @@ pub async fn run(args: &[String]) -> Result<bool> {
         None | Some("help" | "--help") if args.len() <= 1 => {
             print(
                 &serde_json::json!({"schema":"zix-api-help/v1", "authority":"none",
-                "commands":["import SPEC REVIEW", "describe CATALOG", "diff OLD NEW",
+                "commands":["import SPEC REVIEW", "project SPEC REVIEW", "describe CATALOG", "routes CATALOG", "diff OLD NEW",
                     "run CATALOG REVIEWED_SHA256 OPERATION [provider flags]"],
-                "formats":["OpenAPI 3.0/3.1 JSON", "Google Discovery v1 JSON"],
+                "formats":["OpenAPI 3.0/3.1 JSON/YAML", "Swagger 2.0 JSON", "Google Discovery v1 JSON"],
                 "execution":"explicit registered read-only provider binding"}),
             )?;
         }
         Some("import") if args.len() == 3 => {
             print(&api_spec::import(&read(&args[1])?, &read(&args[2])?)?)?;
         }
+        Some("project") if args.len() == 3 || args.len() == 4 => {
+            let source = files::read(Path::new(&args[1]), api_spec::PROJECT_LIMIT, false)?;
+            let review = read(&args[2])?;
+            let catalog = if args.len() == 4 {
+                api_spec::project_with_documents(&source, &review, &read(&args[3])?)?
+            } else {
+                api_spec::project(&source, &review)?
+            };
+            print(&catalog)?;
+        }
+        Some("routes") if args.len() == 2 => print(&api_spec::routes(&catalog(&args[1])?))?,
         Some("describe") if args.len() == 2 => print(&catalog(&args[1])?)?,
         Some("diff") if args.len() == 3 => {
             let value = api_spec::diff(&catalog(&args[1])?, &catalog(&args[2])?);
