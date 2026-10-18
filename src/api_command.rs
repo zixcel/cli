@@ -11,10 +11,11 @@ fn catalog(path: &str) -> Result<api_spec::Catalog> {
     api_spec::parse(&read(path)?)
 }
 fn print(value: &impl serde::Serialize) -> Result<()> {
-    println!(
-        "{}",
-        serde_json::to_string_pretty(value).map_err(|_| Error("invalid_api_json"))?
-    );
+    let encoded = serde_json::to_string(value).map_err(|_| Error("invalid_api_json"))?;
+    if encoded.len() >= api_spec::SPEC_LIMIT {
+        return Err(Error("api_output_too_large"));
+    }
+    println!("{encoded}");
     Ok(())
 }
 pub async fn run(args: &[String]) -> Result<bool> {

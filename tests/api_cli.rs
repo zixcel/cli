@@ -34,6 +34,7 @@ fn specification_import_and_describe_work_offline_without_a_registry_or_home() {
         "{}",
         String::from_utf8_lossy(&out.stderr)
     );
+    assert_eq!(out.stdout.iter().filter(|b| **b == b'\n').count(), 1);
     let catalog = c.root.path().join("imported.json");
     fs::write(&catalog, &out.stdout).unwrap();
     let described = c.run(&["api", "describe", catalog.to_str().unwrap()]);

@@ -68,7 +68,7 @@ update, permission expansion or automatic adoption.
   operation: 128; JSON depth: 64; nodes: 200,000. Files must satisfy the existing
   absolute-path, ownership, mode and no-symlink checks. Duplicate keys fail.
 - Exact numeric lexemes are retained, including large integers and decimals.
-  Output is deterministic JSON. Descriptions remain untrusted JSON data.
+  Output is bounded, deterministic compact JSON. Descriptions remain untrusted JSON data.
 
 Mutation approval, IAM discovery, destructive-operation postconditions and
 unknown-outcome handling belong to reviewed owner policies. They are not
