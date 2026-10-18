@@ -79,7 +79,7 @@ impl Manifest {
                 return Err(Error("invalid_manifest"));
             }
             for a in &c.arguments {
-                if !token(&a.name) || !args.insert(&a.name) || !(1..=512).contains(&a.maximum) {
+                if !token(&a.name) || !args.insert(&a.name) || !(1..=2048).contains(&a.maximum) {
                     return Err(Error("invalid_manifest"));
                 }
             }
