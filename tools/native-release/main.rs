@@ -3,8 +3,7 @@ use std::{
     path::{Path, PathBuf},
     process::{Command, ExitCode},
 };
-mod archive;
-mod licenses;
+use zix_cli::release_bundle::{archive, licenses};
 fn main() -> ExitCode {
     match run() {
         Ok(()) => ExitCode::SUCCESS,

@@ -15,12 +15,16 @@ zix prompt google
 
 The initial supported host is Linux x86_64, including WSL. The release binary does not require Node, Rust, gcloud, a sibling checkout, or a private registry. An unavailable release or provider is an error; there is no source-install or similarly named provider fallback.
 
-## API specifications
+## API specifications (0.2 source candidate)
 
 Import selected OpenAPI or Google Discovery operations into a versioned catalog,
 review upstream contract changes, and bind operations to installed providers.
 [API architecture and update flow](docs/api-specifications.md) ·
-[Offline playground](playground/api-catalog/README.md).
+[Offline playground](playground/api-catalog/README.md) ·
+[Native provider rollout](docs/provider-rollout.md).
+
+These new API commands require the 0.2 source candidate; the previously published
+0.1 dispatcher still supports explicitly registered native read providers.
 
 Catalogs do not execute arbitrary HTTP or grant permissions. Runtime bindings
 require both the reviewed catalog hash and the registered provider manifest hash.

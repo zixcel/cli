@@ -2,7 +2,12 @@ use super::{Operation, Selection, references};
 use crate::{Error, Result};
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
-pub fn select(root: &Value, selection: &Selection) -> Result<Operation> {
+pub fn select(
+    root: &Value,
+    selection: &Selection,
+    format: &super::Format,
+    documents: &super::documents::Documents<'_>,
+) -> Result<Operation> {
     let paths = root["paths"]
         .as_object()
         .ok_or(Error("invalid_openapi_paths"))?;
@@ -21,7 +26,7 @@ pub fn select(root: &Value, selection: &Selection) -> Result<Operation> {
             let Some(id) = operation.get("operationId").and_then(Value::as_str) else {
                 continue;
             };
-            if found.insert(id, (path, method, item, operation)).is_some() {
+            if id == selection.id && found.insert(id, (path, method, item, operation)).is_some() {
                 return Err(Error("duplicate_api_operation"));
             }
         }
@@ -31,8 +36,11 @@ pub fn select(root: &Value, selection: &Selection) -> Result<Operation> {
         .ok_or(Error("unknown_api_operation"))?;
     let context = json!({"info":root.get("info"),"jsonSchemaDialect":root.get("jsonSchemaDialect"),"servers":root.get("servers"),"security":root.get("security"),
         "securitySchemes":root.pointer("/components/securitySchemes"),
-        "pathParameters":item.get("parameters"),"pathServers":item.get("servers")});
-    let references = references::closure(root, &[contract, &context], &super::Format::Openapi)?;
+        "pathParameters":item.get("parameters"),"pathServers":item.get("servers"),
+        "host":root.get("host"),"basePath":root.get("basePath"),"schemes":root.get("schemes"),
+        "consumes":root.get("consumes"),"produces":root.get("produces"),
+        "securityDefinitions":root.get("securityDefinitions")});
+    let references = references::closure(&[contract, &context], format, documents)?;
     Ok(Operation {
         id: selection.id.clone(),
         method: method.to_ascii_uppercase(),

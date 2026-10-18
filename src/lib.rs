@@ -12,11 +12,12 @@ pub mod files;
 pub mod install;
 pub mod manifest;
 pub mod registry;
+pub mod release_bundle;
 mod sealed;
 pub use arguments::{Selected, select};
 pub use error::{Error, Result};
 
 mod registry_store;
-mod response;
+pub mod response;
 #[cfg(test)]
 mod sealed_tests;

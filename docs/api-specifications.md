@@ -58,15 +58,19 @@ update, permission expansion or automatic adoption.
 
 ## Supported input and limits
 
-- JSON OpenAPI 3.0.x / 3.1.x and Google Discovery v1. YAML and newer dialects
-  fail closed. This is a selected-contract importer, not full spec conformance.
-- OpenAPI operation IDs must be explicit and unique. Path-item `$ref` is
+- OpenAPI 3.0.x / 3.1.x JSON, explicitly selected `openapi_yaml`, Swagger 2.0
+  JSON and Google Discovery v1. Newer dialects fail closed. This is a selected-contract importer, not full spec conformance.
+- Selected OpenAPI operation IDs must be explicit and unique. Unselected duplicate
+  IDs do not enable operations. Path-item `$ref` is
   unsupported and rejected. Parameter/schema/response local references are
-  preserved; external/file/network references are never fetched.
+  preserved. External schema documents require a separate explicit URI/hash
+  review and offline bundle; no file/network reference is ever fetched.
+  Documentation-only `x-ms-examples` references are retained for diff without
+  resolving example files.
 - Discovery named schema references and nested resources are supported.
   Recursive local schemas are retained without infinite expansion.
 - Inputs/catalogs: 8 MiB; review: 64 KiB; selected operations: 32; references per
-  operation: 128; JSON depth: 64; nodes: 200,000. Files must satisfy the existing
+  operation: 128 by default; JSON depth: 64; nodes: 200,000. Files must satisfy the existing
   absolute-path, ownership, mode and no-symlink checks. Duplicate keys fail.
 - Exact numeric lexemes are retained, including large integers and decimals.
   Output is bounded, deterministic compact JSON. Descriptions remain untrusted JSON data.
@@ -79,3 +83,41 @@ execute real Cloud operations.
 See the [offline playground](../playground/api-catalog/README.md). Specification
 references: [OpenAPI](https://spec.openapis.org/oas/v3.1.2.html) and
 [Google Discovery](https://developers.google.com/discovery/v1/reference/apis).
+
+## Large and multi-document specifications
+
+`zix api project SPEC REVIEW [BUNDLE]` is an explicit developer operation. It allows
+up to 64 MiB / 2,000,000 input nodes, while output and runtime catalogs remain
+limited to 8 MiB. A review may explicitly set `reference_limit` up to 1024 for
+large selected schema closures such as Graph. Serialized reference accumulation
+is capped before cloning; no schema is truncated to fit.
+
+Use `source_uri` and `reference_sources` (absolute HTTPS document URI -> raw-byte
+SHA256) in the review. A separate bundle is JSON
+`{"documents":{"https://example.invalid/types.json":"raw JSON document text"}}`.
+Bundle bytes are limited to 8 MiB, with at most 16 documents; every document hash
+must match, including unselected supplied documents. Relative references resolve
+against their document's URI, never against the filesystem. Unknown documents,
+userinfo/file URIs, modified documents and missing references fail closed.
+No resolver, downloader, environment interpolation or include is activated.
+
+OpenAPI YAML is explicit (`format: "openapi_yaml"`), limited to one document and
+64 levels. Aliases, anchors, merges, include/custom tags and duplicate keys are
+rejected. YAML floating numeric scalars are rejected rather than rounded; use an
+accurate reviewed JSON representation when needed. Do not change numeric schema
+constraints to quoted strings merely to pass validation. JSON retains exact
+numeric lexemes. The pinned deserializer enables only its deserialize feature.
+
+`zix api routes CATALOG` exports identifiers, methods, paths, candidate server URLs
+and source hashes/version metadata without vendor prose or schema bodies.
+Provider policy separately pins these facts and its allowed origin/base path.
+A server URL in a specification is data, never network permission.
+
+## Native providers
+
+[`zix-native-provider`](../crates/native-provider/README.md) owns the shared
+read-only protocol/profile host. Vendor owners embed reviewed route facts and
+policies, then reuse Crowsi's bounded HTTPS reads. Existing owner libraries can
+use the same protocol host directly; ValueDomain inventory is not reimplemented.
+AWS signing/custody is not interchangeable with bearer reads. See the
+[provider rollout assessment](provider-rollout.md).
