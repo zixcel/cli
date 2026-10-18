@@ -15,6 +15,10 @@ fn discovery_is_deterministic_and_reflects_enablement() {
         assert!(first.status.success());
         assert_eq!(first.stdout, c.run(&args).stdout);
     }
+    let prompt = String::from_utf8(c.run(&["prompt", "sample"]).stdout).unwrap();
+    assert!(prompt.contains(" --mode '<value>'"));
+    assert!(prompt.contains(" [--value '<value>']"));
+    assert!(!prompt.contains("[--mode"));
     assert!(c.run(&["extensions", "disable", "sample"]).status.success());
     let out = c.run(&["list", "--format", "json"]);
     assert_eq!(
