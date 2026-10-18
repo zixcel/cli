@@ -1,0 +1,67 @@
+use crate::{
+    Error, Result, discovery, execution, extensions,
+    registry::{self, Registry},
+    select,
+};
+pub async fn run(args: &[String]) -> Result<bool> {
+    if args.len() > 48
+        || args
+            .iter()
+            .any(|a| a.len() > 4096 || a.bytes().any(|b| b.is_ascii_control()))
+    {
+        return Err(Error("invalid_arguments"));
+    }
+    if args == ["version"] || args == ["--version"] {
+        println!("zix {}", env!("CARGO_PKG_VERSION"));
+        return Ok(true);
+    }
+    let path = registry::location()?;
+    if args.first().is_some_and(|a| a == "extensions") {
+        extensions::run(&path, &args[1..])?;
+        return Ok(true);
+    }
+    let registry = Registry::load(&path)?;
+    if args.is_empty() || ["help", "--help", "list", "capabilities"].contains(&args[0].as_str()) {
+        if args.len() > 1 && args[1..] != ["--format", "json"] {
+            return Err(Error("invalid_arguments"));
+        }
+        if args.first().is_some_and(|a| a == "capabilities") || args.len() > 1 {
+            println!("{}", discovery::capabilities(&registry)?);
+        } else {
+            println!("{}", discovery::help(&registry)?);
+        }
+        return Ok(true);
+    }
+    if args
+        .first()
+        .is_some_and(|a| a == "describe" || a == "prompt")
+    {
+        if args[0] == "prompt" && args.len() != 2 {
+            return Err(Error("invalid_arguments"));
+        }
+        if args.len() != 2 && !(args.len() == 4 && args[2..] == ["--format", "json"]) {
+            return Err(Error("invalid_arguments"));
+        }
+        let entry = registry.entry(&args[1])?;
+        if args[0] == "describe" && args.len() == 4 {
+            println!(
+                "{}",
+                serde_json::to_string(&entry.manifest()?).map_err(|_| Error("invalid_manifest"))?
+            );
+        } else {
+            println!("{}", discovery::prompt(&registry, &args[1])?);
+        }
+        return Ok(true);
+    }
+    let entry = registry.entry(&args[0])?;
+    let m = entry.manifest()?;
+    if args[1..] == ["--help"] {
+        println!("{}", discovery::prompt(&registry, &args[0])?);
+        return Ok(true);
+    }
+    let selected = select(&m, &args[1..])?;
+    let response = execution::dispatch(entry, selected).await?;
+    let success = response.get("error").is_none();
+    println!("{response}");
+    Ok(success)
+}

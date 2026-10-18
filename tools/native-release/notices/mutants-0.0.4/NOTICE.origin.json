@@ -1,0 +1,8 @@
+{
+  "package": "mutants",
+  "version": "0.0.4",
+  "upstream": "https://github.com/sourcefrog/cargo-mutants/blob/14011d08c42a7cd368698fe28f77eb4cd0b65bf0/LICENSE",
+  "vcsEvidence": "crate .cargo_vcs_info.json",
+  "licenseSha256": "479cbeb2506157776cf80abe31df18065d0fe50b5816ff77bfd75d5deb04ab5c",
+  "changes": "none; original license absent from published crate; retained without edits"
+}

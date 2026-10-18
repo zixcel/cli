@@ -1,0 +1,45 @@
+[package]
+name = "zix-cli"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+license = "Apache-2.0"
+repository = "https://github.com/zixcel/cli"
+description = "Explicitly registered, integrity-bound local provider commands"
+publish = false
+
+[[bin]]
+name = "zix"
+path = "src/main.rs"
+
+[[bin]]
+name = "zix-contract-probe"
+path = "tests/support/provider.rs"
+
+[workspace]
+resolver = "3"
+
+[dependencies]
+zixcel-bounded-io = { git = "https://github.com/zixcel/zixcel-contracts", rev = "24a7ec9e328987d931cf49dd97ca23a6ae50db2f" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.11"
+rustix = { version = "1.1", features = ["fs", "process"] }
+crowsi-process-adapter = "=0.10.0"
+tokio = { version = "1.49", features = ["rt", "macros", "io-util", "time", "signal"] }
+
+[dev-dependencies]
+tempfile = "3.27"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
+
+[[bin]]
+name = "zix-package"
+path = "tools/native-release/main.rs"
+
+[profile.release]
+strip = "debuginfo"

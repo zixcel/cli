@@ -1,0 +1,7 @@
+/target/
+/release/
+*.tar.gz
+*.tgz
+.env
+.env.*
+/.local/
