@@ -23,6 +23,7 @@ pub async fn dispatch(entry: &Entry, selected: Selected<'_>) -> Result<Value> {
     if !m.commands.contains(selected.command) {
         return Err(Error("operation_binding_mismatch"));
     }
+    crate::operator::authorize(&m, &entry.executable_sha256, &selected)?;
     let snapshot = sealed::snapshot(entry)?;
     let tick = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -30,8 +31,13 @@ pub async fn dispatch(entry: &Entry, selected: Selected<'_>) -> Result<Value> {
         .as_nanos();
     let id =
         crate::files::digest(format!("{}:{tick}", std::process::id()).as_bytes())[..32].to_owned();
-    let request = json!({"schema":"zix-provider/v1","id":id,"operation":selected.command.id,"arguments":selected.arguments,
+    let mut request = json!({"schema":"zix-provider/v1","id":id,"operation":selected.command.id,"arguments":selected.arguments,
         "limits":{"timeout_ms":m.timeout_ms,"maximum_response_bytes":131072}});
+    if m.schema == "zix-extension/v2" {
+        request["binding"] =
+            serde_json::to_value(crate::operator::binding(&m, &entry.executable_sha256)?)
+                .map_err(|_| Error("invalid_manifest"))?;
+    }
     let mut launch = Launch::new(&snapshot.path).args(["--zix-provider-v1"]);
     for name in &m.runtime_environment {
         let value = std::env::var(name).map_err(|_| Error("runtime_environment_missing"))?;

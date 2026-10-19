@@ -1654,6 +1654,7 @@ dependencies = [
  "tempfile",
  "tokio",
  "url",
+ "zix-operation-contracts",
  "zixcel-bounded-io",
 ]
 
@@ -1667,6 +1668,15 @@ dependencies = [
  "url",
  "zeroize",
  "zix-cli",
+]
+
+[[package]]
+name = "zix-operation-contracts"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "sha2",
 ]
 
 [[package]]
