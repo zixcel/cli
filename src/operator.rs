@@ -31,7 +31,13 @@ pub(crate) fn authorize(
             .get(name)
             .ok_or(Error("missing_argument"))
     };
-    let bytes = crate::files::read(Path::new(arg("plan-file")?), 1048576, false)?;
+    use std::os::unix::fs::PermissionsExt;
+    let path = Path::new(arg("plan-file")?);
+    let metadata = std::fs::symlink_metadata(path).map_err(|_| Error("unsafe_plan_file"))?;
+    if metadata.permissions().mode() & 0o077 != 0 {
+        return Err(Error("unsafe_plan_file"));
+    }
+    let bytes = crate::files::read(path, 1048576, false)?;
     let p: LocalPlan = serde_json::from_slice(&bytes).map_err(|_| Error("invalid_local_plan"))?;
     let approved = arg("approval-sha256")?;
     if !p.matches(
