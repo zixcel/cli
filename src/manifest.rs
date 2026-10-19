@@ -48,9 +48,17 @@ impl Manifest {
             || self.commands.is_empty()
             || self.commands.len() > 32
             || self.credential_environment.len() > 8
+            || self.runtime_environment.len() > 1
             || !(50..=40000).contains(&self.timeout_ms)
         {
             return Err(Error("invalid_manifest"));
+        }
+        if self
+            .runtime_environment
+            .iter()
+            .any(|name| name != "DBUS_SESSION_BUS_ADDRESS")
+        {
+            return Err(Error("invalid_runtime_environment"));
         }
         for name in &self.credential_environment {
             if !name.starts_with("ZIX_")

@@ -38,3 +38,11 @@ are separate from source completion. No tag, release, credentials, IAM, DNS or
 real account operation is authorized or executed by the source tests. The common
 protocol remains read-only; AWS signing and native writes require their own
 reviewed authority/execution design, not an HTTP-method guess or CLI passthrough.
+
+Extensions using an OS Secret Service may declare
+`runtime_environment: ["DBUS_SESSION_BUS_ADDRESS"]` in their reviewed manifest.
+The dispatcher passes only an explicitly selected local Unix bus address; an
+undeclared bus, remote transport, missing bus or arbitrary variable name is not
+accepted. This grants access to that user's session services, so review the
+extension's provenance before installation. It is not permission to unlock or
+export credentials. Existing manifests inherit no session bus.

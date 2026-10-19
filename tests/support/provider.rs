@@ -44,7 +44,8 @@ fn main() {
     }
     let mut result = json!({"value":request["arguments"].get("value"),
         "unselected_environment":std::env::var_os("LEAK_PROBE").is_some(),
-        "selected_environment":std::env::var_os("ZIX_TEST_ACCESS_TOKEN").is_some()});
+        "selected_environment":std::env::var_os("ZIX_TEST_ACCESS_TOKEN").is_some(),
+        "session_bus":std::env::var_os("DBUS_SESSION_BUS_ADDRESS").is_some()});
     if mode == "secret" {
         result = json!({"secret":std::env::var("ZIX_TEST_ACCESS_TOKEN").unwrap()});
     }
