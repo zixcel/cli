@@ -15,7 +15,7 @@ zix prompt google
 
 The initial supported host is Linux x86_64, including WSL. The release binary does not require Node, Rust, gcloud, a sibling checkout, or a private registry. An unavailable release or provider is an error; there is no source-install or similarly named provider fallback.
 
-## API specifications (0.2 source candidate)
+## API specifications
 
 Import selected OpenAPI or Google Discovery operations into a versioned catalog,
 review upstream contract changes, and bind operations to installed providers.
@@ -23,8 +23,10 @@ review upstream contract changes, and bind operations to installed providers.
 [Offline playground](playground/api-catalog/README.md) ·
 [Native provider rollout](docs/provider-rollout.md).
 
-These new API commands require the 0.2 source candidate; the previously published
-0.1 dispatcher still supports explicitly registered native read providers.
+API catalog commands are available in the 0.2 series. Explicit operator-write
+manifests require the post-0.2.0 dispatcher source prepared as 0.2.1; the 0.2.0
+release does not accept v2 write manifests. A source change is not a published
+release: check the owner release record before installing an extension.
 
 Catalogs do not execute arbitrary HTTP or grant permissions. Runtime bindings
 require both the reviewed catalog hash and the registered provider manifest hash.
@@ -32,7 +34,7 @@ require both the reviewed catalog hash and the registered provider manifest hash
 ## Boundaries
 
 - Extensions are trusted native executable code, not a sandbox. Review their origin and requested credential environment before enabling them.
-- The first protocol supports declared read operations and string arguments. Write approval, Node/TypeScript launchers, Windows/macOS, and OAuth login/profile storage are not implemented by this release.
+- V1 manifests declare read operations; opt-in v2 manifests support explicit local operator writes as documented below. Node/TypeScript launchers, Windows/macOS and OAuth login/profile storage are not implemented.
 - Google access tokens are externally supplied, short-lived credentials. Zix does not mint a new token or authenticate with an old service-account key. The provider verifies Google resource scope; manifest permissions are descriptive, not authorization.
 - A private per-user registry binds exact manifest/executable hashes. Namespace collisions, symlinks, unsafe ownership/modes, unknown protocol/operations, disabled providers and modified files fail closed.
 - Before execution, verified ELF bytes are copied into a sealed Linux memfd. The selected file cannot be swapped between integrity verification and execution. Crowsi owns process lifetime; input, output, diagnostics and time are bounded. Unselected environment and raw provider diagnostics are not forwarded.
