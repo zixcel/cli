@@ -29,6 +29,7 @@ jobs:
       statuses: read
       actions: read
     steps:
-      - uses: zixcel/zixcel-repository-security/.github/actions/dependabot-merge@05bc24e1b7dc3374919a35093e53b3dc66d6ab24
+      - uses: zixcel/zixcel-repository-security/.github/actions/dependabot-merge@530fcab43b727cbd95d1e8c67f312f754cbbbae6
         with:
           pull-request-number: ${{ github.event.inputs.number || '' }}
+          required-workflows: '["CI"]'
