@@ -1,5 +1,6 @@
 use crate::{Error, Result};
 use std::collections::HashSet;
+mod commands;
 mod model;
 pub use model::{Argument, Command, Manifest};
 pub fn token(s: &str) -> bool {
@@ -23,10 +24,8 @@ impl Manifest {
         Ok(m)
     }
     pub fn validate(&self) -> Result<()> {
-        let mut ids = HashSet::new();
-        let mut commands = HashSet::new();
         let mut env = HashSet::new();
-        if self.schema != "zix-extension/v1"
+        if !["zix-extension/v1", "zix-extension/v2"].contains(&self.schema.as_str())
             || self.protocol != "zix-provider/v1"
             || !token(&self.namespace)
             || [
@@ -71,38 +70,7 @@ impl Manifest {
                 return Err(Error("invalid_manifest"));
             }
         }
-        for c in &self.commands {
-            let mut args = HashSet::new();
-            if !clean(&c.id, 100)
-                || !ids.insert(&c.id)
-                || c.effect != "read"
-                || !clean(&c.description, 160)
-                || c.words.is_empty()
-                || c.words.len() > 6
-                || c.words.iter().any(|w| !token(w))
-                || !commands.insert(&c.words)
-                || c.arguments.len() > 16
-                || c.required_permissions.len() > 16
-                || c.required_permissions.iter().any(|p| !clean(p, 128))
-            {
-                return Err(Error("invalid_manifest"));
-            }
-            for a in &c.arguments {
-                if !token(&a.name) || !args.insert(&a.name) || !(1..=2048).contains(&a.maximum) {
-                    return Err(Error("invalid_manifest"));
-                }
-            }
-        }
-        for (i, a) in self.commands.iter().enumerate() {
-            if self
-                .commands
-                .iter()
-                .skip(i + 1)
-                .any(|b| a.words.starts_with(&b.words) || b.words.starts_with(&a.words))
-            {
-                return Err(Error("ambiguous_operation"));
-            }
-        }
+        commands::validate(self)?;
         Ok(())
     }
 }

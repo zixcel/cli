@@ -21,6 +21,7 @@ members = ["crates/*"]
 resolver = "3"
 
 [dependencies]
+zix-operation-contracts = { path = "crates/operation-contracts" }
 serde-saphyr = { version = "=1.3.0", default-features = false, features = ["deserialize"] }
 url = "2.5"
 zixcel-bounded-io = { git = "https://github.com/zixcel/zixcel-contracts", rev = "24a7ec9e328987d931cf49dd97ca23a6ae50db2f" }

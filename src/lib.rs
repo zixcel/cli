@@ -11,6 +11,7 @@ mod extensions;
 pub mod files;
 pub mod install;
 pub mod manifest;
+mod operator;
 pub mod registry;
 pub mod release_bundle;
 mod sealed;

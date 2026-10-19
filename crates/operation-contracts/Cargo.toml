@@ -1,0 +1,14 @@
+[package]
+name = "zix-operation-contracts"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.97"
+license = "Apache-2.0"
+repository = "https://github.com/zixcel/cli"
+publish = false
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.11"
+[lints.rust]
+unsafe_code = "forbid"

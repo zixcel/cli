@@ -50,3 +50,21 @@ Release packaging selects only `--bin zix`. The contract probe and packaging exe
 Builds reuse the public Zixcel bounded-I/O component at the explicit Git revision in Cargo.toml and Cargo.lock. That managed component is not yet published to crates.io; no sibling checkout or private source is required. Runtime process ownership uses the published Crowsi process-adapter crate. Native packages include these components and do not fetch source when run.
 
 Apache-2.0. Original dependency licenses and copyright notices accompany native archives in `THIRD-PARTY/`. `DEPENDENCIES.json` describes the resolved build/development graph, not a linked-binary SBOM.
+
+## Explicit local operator writes
+
+The existing v1 manifest stays read-only. The opt-in v2 manifest may declare
+`operator-write` commands with required plan-file, approval-sha256 and private
+journal-directory arguments. The dispatcher requires a real interactive input
+terminal, checks the plan's operation/package/version/catalog/executable binding,
+and asks the operator to enter the reviewed plan hash before launching code.
+An unattended call fails before launching the provider. Providers must independently
+recheck the binding, current permissions/state, expiry, payload and durable journal.
+
+This is an explicit local operator workflow, not a signed authorization grant or
+isolation from a malicious same-user process/PTY. It does not implement remote
+unattended write authority. Do not present it as the independent Crowsi authority
+or use it to relax that separate boundary. A native API catalog still advertises
+only the operations its own execution policy supports. Plan integrity contracts
+are shared in the small `zix-operation-contracts` crate; provider API meaning stays
+with each provider.
