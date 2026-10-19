@@ -9,6 +9,8 @@ pub struct Manifest {
     pub platform: String,
     pub protocol: String,
     pub credential_environment: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub runtime_environment: Vec<String>,
     pub commands: Vec<Command>,
     pub timeout_ms: u64,
 }

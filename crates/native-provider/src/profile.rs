@@ -51,6 +51,7 @@ impl Provider {
             platform: "linux-x86_64".into(),
             protocol: "zix-provider/v1".into(),
             credential_environment: vec![policy.credential_environment.clone()],
+            runtime_environment: vec![],
             commands: policy
                 .operations
                 .iter()

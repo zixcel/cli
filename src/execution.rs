@@ -33,6 +33,17 @@ pub async fn dispatch(entry: &Entry, selected: Selected<'_>) -> Result<Value> {
     let request = json!({"schema":"zix-provider/v1","id":id,"operation":selected.command.id,"arguments":selected.arguments,
         "limits":{"timeout_ms":m.timeout_ms,"maximum_response_bytes":131072}});
     let mut launch = Launch::new(&snapshot.path).args(["--zix-provider-v1"]);
+    for name in &m.runtime_environment {
+        let value = std::env::var(name).map_err(|_| Error("runtime_environment_missing"))?;
+        if !value.starts_with("unix:path=/")
+            || value.len() > 4096
+            || value.bytes().any(|b| b.is_ascii_control())
+            || value.contains(';')
+        {
+            return Err(Error("invalid_runtime_environment"));
+        }
+        launch = launch.env(name, value);
+    }
     let mut secrets = Vec::new();
     for name in &m.credential_environment {
         if let Some(value) = std::env::var_os(name) {
