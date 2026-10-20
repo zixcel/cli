@@ -1,20 +1,11 @@
 use crate::{Error, Result, Selected, registry::Entry, sealed};
-use crowsi_process_adapter::{Launch, OwnedProcess};
+use crowsi_process_adapter::OwnedProcess;
 use serde_json::{Value, json};
 use std::time::Duration;
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWriteExt};
-async fn bounded(reader: impl AsyncRead + Unpin, maximum: usize) -> Result<Vec<u8>> {
-    let mut bytes = Vec::new();
-    reader
-        .take(maximum as u64 + 1)
-        .read_to_end(&mut bytes)
-        .await
-        .map_err(|_| Error("provider_io_failed"))?;
-    if bytes.len() > maximum {
-        return Err(Error("provider_output_limit"));
-    }
-    Ok(bytes)
-}
+use tokio::io::AsyncWriteExt;
+mod environment;
+mod output;
+use output::bounded;
 pub async fn dispatch(entry: &Entry, selected: Selected<'_>) -> Result<Value> {
     if !entry.enabled {
         return Err(Error("disabled"));
@@ -38,35 +29,7 @@ pub async fn dispatch(entry: &Entry, selected: Selected<'_>) -> Result<Value> {
             serde_json::to_value(crate::operator::binding(&m, &entry.executable_sha256)?)
                 .map_err(|_| Error("invalid_manifest"))?;
     }
-    let mut launch = Launch::new(&snapshot.path).args(["--zix-provider-v1"]);
-    for name in &m.runtime_environment {
-        let value = std::env::var(name).map_err(|_| Error("runtime_environment_missing"))?;
-        if !value.starts_with("unix:path=/")
-            || value.len() > 4096
-            || value.bytes().any(|b| b.is_ascii_control())
-            || value.contains(';')
-        {
-            return Err(Error("invalid_runtime_environment"));
-        }
-        launch = launch.env(name, value);
-    }
-    let mut secrets = Vec::new();
-    for name in &m.credential_environment {
-        if let Some(value) = std::env::var_os(name) {
-            let text = value
-                .to_str()
-                .ok_or(Error("invalid_credential_environment"))?;
-            if text.is_empty()
-                || text.len() > 16384
-                || !text.is_ascii()
-                || text.bytes().any(|b| b.is_ascii_control())
-            {
-                return Err(Error("invalid_credential_environment"));
-            }
-            secrets.push(text.to_owned());
-            launch = launch.env(name, value);
-        }
-    }
+    let (launch, secrets) = environment::launch(&snapshot.path, &m)?;
     let mut child = OwnedProcess::spawn(launch)
         .await
         .map_err(|_| Error("provider_start_failed"))?;
@@ -109,5 +72,14 @@ pub async fn dispatch(entry: &Entry, selected: Selected<'_>) -> Result<Value> {
         }
     }
     drop(snapshot.file);
+    if let Err(cause) = result
+        && selected.command.effect == "operator-write"
+    {
+        eprintln!(
+            "{{\"cause\":\"{}\",\"reconciliation\":\"provider_readback_required\"}}",
+            cause.0
+        );
+        return Err(Error("operator_write_outcome_unknown"));
+    }
     result
 }

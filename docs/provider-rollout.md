@@ -36,8 +36,10 @@ owner PR. No upstream addition automatically changes callable operations.
 Native tag protection, artifact/provenance/checksum acceptance and publication
 are separate from source completion. No tag, release, credentials, IAM, DNS or
 real account operation is authorized or executed by the source tests. The common
-protocol remains read-only; AWS signing and native writes require their own
-reviewed authority/execution design, not an HTTP-method guess or CLI passthrough.
+`zix-extension/v1` contract remains read-only. Explicit operator writes use the
+separate v2 manifest admission and terminal plan approval; providers still own
+authority, one-use journals, vendor preconditions and postconditions. AWS signing
+requires its existing custody authority, not an HTTP-method guess or passthrough.
 
 Extensions using an OS Secret Service may declare
 `runtime_environment: ["DBUS_SESSION_BUS_ADDRESS"]` in their reviewed manifest.
@@ -46,3 +48,37 @@ undeclared bus, remote transport, missing bus or arbitrary variable name is not
 accepted. This grants access to that user's session services, so review the
 extension's provenance before installation. It is not permission to unlock or
 export credentials. Existing manifests inherit no session bus.
+
+## Authentication and operation ownership
+
+Login, refresh and profile enrollment belong to the selected provider and its
+existing Crowsi custody contract. Installing an extension, discovering a manifest
+or listing a capability does not log in or grant account permissions. The common
+CLI does not introduce a global OAuth service or a second credential database.
+A provider profile argument is an opaque local reference, never a password or
+access token. Providers verify the reference's account/origin/workspace binding;
+its display name is not authority. Long-lived values must stay in OS custody.
+
+For an approved provider that uses Secret Service, the manifest must explicitly
+select the local session bus. The dispatcher neither unlocks collections nor
+copies broker-resolved secrets into its arguments/protocol. Legacy explicitly
+selected `ZIX_*` credential environments remain supported, isolated from ambient
+variables; only the declared credentials enter that child. Known credential bytes
+and JSON-escaped equivalents are refused in responses. Providers remain responsible
+for redacting secrets they resolve internally and never returning them.
+
+Read and mutation effects are declared, not inferred from names or HTTP verbs.
+V1 cannot admit operator-write. V2 requires plan-file, approval-sha256 and a
+journal-directory and obtains independent terminal confirmation. The digest binds
+the registered executable, catalog, version, operation and payload; it is not an
+identity signature, permission grant or replay journal. The provider owns expiry,
+one-use consumption, durable outcomes and drift/readback. Unlocking is not approval.
+
+Cancellation/timeout/output/protocol failures terminate the owned process tree;
+the dispatcher never resubmits a request. Once an operator-write child has started,
+a missing valid response is `operator_write_outcome_unknown`, with a static cause
+and `provider_readback_required` diagnostic. Killing a process does not undo an
+external mutation. Inspect the provider's durable receipt and target state; never
+blindly approve and resend the same operation. Errors before launch retain their
+ordinary admission/credential/approval diagnostics. An authenticated provider's
+valid error/receipt is interpreted according to its own contract.
