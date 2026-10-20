@@ -5,7 +5,7 @@ Use a private download/install directory. Choose the release version explicitly 
 ```sh
 install -d -m 700 "$HOME/.local/share/zix/downloads/cli" "$HOME/.local/share/zix/downloads/google"
 gh release download --repo zixcel/cli --pattern '*-x86_64-unknown-linux-musl.tar.gz' --pattern SHA256SUMS --dir "$HOME/.local/share/zix/downloads/cli"
-gh release download --repo zixcel/zixcel-google --pattern 'zixcel-google-admin-*-x86_64-unknown-linux-musl.tar.gz' --pattern SHA256SUMS --dir "$HOME/.local/share/zix/downloads/google"
+gh release download --repo zixcel/zixcel-google --pattern 'zixcel-google-cli-*-x86_64-unknown-linux-musl.tar.gz' --pattern SHA256SUMS --dir "$HOME/.local/share/zix/downloads/google"
 (cd "$HOME/.local/share/zix/downloads/cli" && sha256sum --check SHA256SUMS)
 (cd "$HOME/.local/share/zix/downloads/google" && sha256sum --check SHA256SUMS)
 ```
@@ -24,7 +24,7 @@ Use `extensions disable google`, `extensions enable google`, or `extensions remo
 
 ## Inspect one Google service-account key
 
-In Bash, supply a short-lived access token through a hidden prompt, never an argv flag, chat message, source file, or old private key. Obtain that token using an already approved authentication flow. This first release does not implement OAuth login and does not require a local gcloud installation.
+In Bash, supply a short-lived access token through a hidden prompt, never an argv flag, chat message, source file, or old private key. Obtain that token using an already approved authentication flow. The native extension does not implement OAuth login and does not require a local gcloud installation.
 
 ```sh
 read -rsp 'Google access token: ' ZIX_GOOGLE_ACCESS_TOKEN
