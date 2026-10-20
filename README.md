@@ -24,8 +24,9 @@ review upstream contract changes, and bind operations to installed providers.
 [Native provider rollout](docs/provider-rollout.md).
 
 API catalog commands are available in the 0.2 series. Explicit operator-write
-manifests require the post-0.2.0 dispatcher source prepared as 0.2.1; the 0.2.0
-release does not accept v2 write manifests. A source change is not a published
+manifests require 0.2.1 or later; the 0.2.0 release does not accept v2 write
+manifests. Version 0.2.2 additionally distinguishes uncertain post-launch write
+outcomes from ordinary read failures. A source change is not a published
 release: check the owner release record before installing an extension.
 
 Catalogs do not execute arbitrary HTTP or grant permissions. Runtime bindings
@@ -47,7 +48,9 @@ cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
 cargo fmt --all --check
 ```
 
-Release packaging selects only `--bin zix`. The contract probe and packaging executable are development tools and are not installed or shipped as runtime commands. Repository-local daily Dependabot proposes updates; it does not auto-merge or publish. [Release flow](docs/release.md).
+Release packaging selects only `--bin zix`. The contract probe and packaging executable are development tools and are not installed or shipped as runtime commands. Repository-local daily Dependabot proposes updates; compatible signed updates
+may merge through the configured owner CI gates. Package publication uses the
+separate version-tag workflow. [Release flow](docs/release.md).
 
 Builds reuse the public Zixcel bounded-I/O component at the explicit Git revision in Cargo.toml and Cargo.lock. That managed component is not yet published to crates.io; no sibling checkout or private source is required. Runtime process ownership uses the published Crowsi process-adapter crate. Native packages include these components and do not fetch source when run.
 
@@ -70,3 +73,9 @@ or use it to relax that separate boundary. A native API catalog still advertises
 only the operations its own execution policy supports. Plan integrity contracts
 are shared in the small `zix-operation-contracts` crate; provider API meaning stays
 with each provider.
+
+After a write child starts, timeout, cancellation or an invalid response cannot
+prove that the external effect did not happen. The dispatcher reports
+`operator_write_outcome_unknown` and never retries. Reconcile the provider receipt
+and target state before planning a new operation. Detailed authentication/profile
+and cancellation ownership is described in [provider rollout](docs/provider-rollout.md).

@@ -13,6 +13,22 @@ fn main() {
     io::stdin().read_to_string(&mut input).unwrap();
     let request: Value = serde_json::from_str(&input).unwrap();
     let mode = request["arguments"]["mode"].as_str().unwrap_or("echo");
+    if mode.starts_with("write-then-") {
+        let path = request["arguments"]["value"].as_str().unwrap();
+        let mut journal = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(path)
+            .unwrap();
+        writeln!(journal, "synthetic_write").unwrap();
+        match mode {
+            "write-then-timeout" => std::thread::sleep(Duration::from_secs(60)),
+            "write-then-invalid" => println!("invalid response after mutation"),
+            "write-then-exit" => std::process::exit(9),
+            _ => panic!("unsupported test scenario"),
+        }
+        return;
+    }
     if mode == "hang-tree" {
         let mut child = std::process::Command::new("/bin/sleep")
             .arg("60")
