@@ -1,10 +1,24 @@
-use crate::{Error, Result, manifest::Manifest};
+use crate::{
+    Error, Result,
+    manifest::{Command, Manifest},
+};
 use crowsi_process_adapter::Launch;
 use std::path::Path;
 
-pub(super) fn launch(path: &Path, manifest: &Manifest) -> Result<(Launch, Vec<String>)> {
+pub(super) fn launch(
+    path: &Path,
+    manifest: &Manifest,
+    command: &Command,
+) -> Result<(Launch, Vec<String>)> {
     let mut launch = Launch::new(path).args(["--zix-provider-v1"]);
-    for name in &manifest.runtime_environment {
+    let (runtime, credentials) = command.environment.as_ref().map_or(
+        (
+            &manifest.runtime_environment,
+            &manifest.credential_environment,
+        ),
+        |scope| (&scope.runtime_environment, &scope.credential_environment),
+    );
+    for name in runtime {
         let value = std::env::var(name).map_err(|_| Error("runtime_environment_missing"))?;
         if !value.starts_with("unix:path=/")
             || value.len() > 4096
@@ -16,7 +30,7 @@ pub(super) fn launch(path: &Path, manifest: &Manifest) -> Result<(Launch, Vec<St
         launch = launch.env(name, value);
     }
     let mut secrets = Vec::new();
-    for name in &manifest.credential_environment {
+    for name in credentials {
         if let Some(value) = std::env::var_os(name) {
             let text = value
                 .to_str()

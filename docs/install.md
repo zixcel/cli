@@ -39,3 +39,12 @@ The token needs the IAM or cloud-platform OAuth scope and IAM `iam.serviceAccoun
 `enabled`, `disabled`, `expired`, `not_yet_valid`, and `not_present` are distinct. `service_account_disabled` is reported separately. A key is `not_present` only after both account binding and a successful key-list response. HTTP 401/403/404, transport errors, rate limiting, invalid responses, scope mismatch and timeouts are failures, never revocation evidence. No key is used for login or modified.
 
 Official API references: [service account get](https://docs.cloud.google.com/iam/docs/reference/rest/v1/projects.serviceAccounts/get), [key list](https://docs.cloud.google.com/iam/docs/reference/rest/v1/projects.serviceAccounts.keys/list).
+
+Provider manifests can narrow environment inheritance per command with
+`environment: {credential_environment: [], runtime_environment: []}`. Names in a
+nonempty subset must already be allowed by that provider; duplicates and additions
+are rejected. The declaration is part of the immutable manifest/binary selection,
+not a caller-supplied runtime override. An omitted declaration keeps the existing
+provider-wide requirements. Public read commands can therefore run without PATs
+or DBus, while custody commands keep their explicit session requirements. This
+requires zix 0.2.4 or newer; older dispatchers reject the unknown declaration.

@@ -2,7 +2,7 @@ use crate::{Error, Result};
 use std::collections::HashSet;
 mod commands;
 mod model;
-pub use model::{Argument, Command, Manifest};
+pub use model::{Argument, Command, CommandEnvironment, Manifest};
 pub fn token(s: &str) -> bool {
     !s.is_empty()
         && s.len() <= 64
