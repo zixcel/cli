@@ -29,7 +29,7 @@ pub async fn dispatch(entry: &Entry, selected: Selected<'_>) -> Result<Value> {
             serde_json::to_value(crate::operator::binding(&m, &entry.executable_sha256)?)
                 .map_err(|_| Error("invalid_manifest"))?;
     }
-    let (launch, secrets) = environment::launch(&snapshot.path, &m)?;
+    let (launch, secrets) = environment::launch(&snapshot.path, &m, selected.command)?;
     let mut child = OwnedProcess::spawn(launch)
         .await
         .map_err(|_| Error("provider_start_failed"))?;

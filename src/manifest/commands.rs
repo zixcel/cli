@@ -28,6 +28,22 @@ pub(super) fn validate(manifest: &Manifest) -> Result<()> {
         {
             return Err(Error("invalid_operator_write"));
         }
+        if let Some(scope) = &c.environment {
+            for (selected, allowed) in [
+                (
+                    &scope.credential_environment,
+                    &manifest.credential_environment,
+                ),
+                (&scope.runtime_environment, &manifest.runtime_environment),
+            ] {
+                let unique = selected.iter().collect::<HashSet<_>>();
+                if unique.len() != selected.len()
+                    || selected.iter().any(|name| !allowed.contains(name))
+                {
+                    return Err(Error("invalid_command_environment"));
+                }
+            }
+        }
         for a in &c.arguments {
             if !token(&a.name) || !args.insert(&a.name) || !(1..=2048).contains(&a.maximum) {
                 return Err(Error("invalid_manifest"));
