@@ -1660,7 +1660,7 @@ dependencies = [
 
 [[package]]
 name = "zix-native-provider"
-version = "0.1.1"
+version = "0.2.0"
 dependencies = [
  "crowsi-provider-read-http",
  "serde",

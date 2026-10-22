@@ -37,7 +37,7 @@ Packaged upstream notices take precedence. Missing material still stops packing;
 this fallback does not replace a license review or invent license text.
 
 Manifest-v2 hosts attach an executable/catalog/version `binding` to protocol
-requests. SDK 0.1.1 parses and verifies it against the actual running executable
+requests. SDK 0.2.0 parses and verifies it against the actual running executable
 before calling any handler. Missing/changed bindings are rejected. This is
 integrity checking, not an identity grant or a substitute for operator approval.
 A v1-only provider must receive a v1 request; a composing v2 adapter validates its
