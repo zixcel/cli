@@ -52,6 +52,8 @@ pub struct Projection {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Request {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub binding: Option<zix_operation_contracts::Binding>,
     pub schema: String,
     pub id: String,
     pub operation: String,

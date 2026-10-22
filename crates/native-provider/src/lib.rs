@@ -1,5 +1,6 @@
 #![forbid(unsafe_code)]
 //! Shared protocol, policy validation and observations; no provider login or implicit grants.
+mod binding;
 pub mod bundle;
 mod entry;
 mod host;

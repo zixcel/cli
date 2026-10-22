@@ -38,6 +38,7 @@ pub fn validate_request(manifest: &Manifest, request: &Request) -> Result<()> {
         args.extend([format!("--{name}"), value.clone()]);
     }
     zix_cli::select(manifest, &args)?;
+    crate::binding::validate(manifest, request)?;
     Ok(())
 }
 pub fn serve(
