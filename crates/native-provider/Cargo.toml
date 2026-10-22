@@ -1,6 +1,6 @@
 [package]
 name = "zix-native-provider"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.97"
 license = "Apache-2.0"
@@ -9,6 +9,7 @@ description = "Reviewed read-only provider profiles over the bounded zix native 
 publish = false
 [dependencies]
 zix-cli = { path = "../.." }
+zix-operation-contracts = { path = "../operation-contracts" }
 crowsi-provider-read-http = { git = "https://github.com/crowsi-net/crowsi-transport-foundation", rev = "8daf36688e1618f294274c61ebfe607f77639534" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

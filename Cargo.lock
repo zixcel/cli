@@ -1660,7 +1660,7 @@ dependencies = [
 
 [[package]]
 name = "zix-native-provider"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "crowsi-provider-read-http",
  "serde",
@@ -1668,6 +1668,7 @@ dependencies = [
  "url",
  "zeroize",
  "zix-cli",
+ "zix-operation-contracts",
 ]
 
 [[package]]
