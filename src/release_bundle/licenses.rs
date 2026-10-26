@@ -4,7 +4,12 @@ use std::{fs, path::Path, process::Command};
 pub fn collect(output: &Path) -> Result<(), &'static str> {
     let cargo = std::env::var_os("CARGO").ok_or("cargo_missing")?;
     let result = Command::new(cargo)
-        .args(["metadata", "--locked", "--format-version=1"])
+        .args([
+            "metadata",
+            "--locked",
+            "--all-features",
+            "--format-version=1",
+        ])
         .output()
         .map_err(|_| "metadata_failed")?;
     if !result.status.success() || result.stdout.len() > 16 * 1024 * 1024 {
@@ -66,11 +71,44 @@ pub fn collect(output: &Path) -> Result<(), &'static str> {
             .cmp(&b["name"].as_str())
             .then(a["version"].as_str().cmp(&b["version"].as_str()))
     });
-    let record = json!({"schema":"zix-build-dependency-notices/v1","coverage":"resolved build and development graph; not a linked-binary SBOM","packages":inventory});
+    let record = json!({"schema":"zix-build-dependency-notices/v1","coverage":"all-features resolved build and development graph; not a linked-binary SBOM","packages":inventory});
     fs::write(
         output.join("DEPENDENCIES.json"),
         serde_json::to_vec_pretty(&record).map_err(|_| "metadata_failed")?,
     )
     .map_err(|_| "output_unavailable")?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn optional_custody_dependencies_have_inventory_and_retained_notices() {
+        let output = tempfile::tempdir().unwrap();
+        super::collect(output.path()).unwrap();
+        let inventory: serde_json::Value = serde_json::from_slice(
+            &std::fs::read(output.path().join("DEPENDENCIES.json")).unwrap(),
+        )
+        .unwrap();
+        for name in [
+            "crowsi-credential-broker",
+            "crowsi-control-contracts",
+            "libsecret",
+            "libsecret-sys",
+            "glib",
+            "gio",
+        ] {
+            let package = inventory["packages"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .find(|p| p["name"] == name)
+                .expect("custody dependency missing from inventory");
+            let directory = output
+                .path()
+                .join("THIRD-PARTY")
+                .join(format!("{name}-{}", package["version"].as_str().unwrap()));
+            assert!(std::fs::read_dir(directory).unwrap().next().is_some());
+        }
+    }
 }
