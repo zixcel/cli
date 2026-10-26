@@ -71,16 +71,19 @@ impl Registry {
         }
         Ok(r)
     }
-    pub fn entry(&self, name: &str) -> Result<&Entry> {
-        let e = self
-            .entries
+    /// Registration metadata is available even when execution is disabled.
+    pub fn registered(&self, name: &str) -> Result<&Entry> {
+        self.entries
             .iter()
             .find(|e| e.manifest().is_ok_and(|m| m.namespace == name))
-            .ok_or(Error("not_installed"))?;
-        if !e.enabled {
+            .ok_or(Error("not_installed"))
+    }
+    pub fn entry(&self, name: &str) -> Result<&Entry> {
+        let entry = self.registered(name)?;
+        if !entry.enabled {
             return Err(Error("disabled"));
         }
-        Ok(e)
+        Ok(entry)
     }
     pub fn save(&self, path: &Path) -> Result<()> {
         crate::registry_store::save(self, path)
