@@ -48,9 +48,11 @@ async fn dispatch_inner(
         .map(|c| crate::credential::resolve(c, entry, &selected))
         .transpose()?;
     let (mut launch, mut secrets) = environment::launch(&snapshot.path, &m, selected.command)?;
-    if let (Some(c), Some(value)) = (credential, extra.as_ref()) {
-        launch = launch.env(&c.environment, value.as_str());
-        secrets.push(value.to_string());
+    if let Some(values) = extra.as_ref() {
+        for (environment, value) in values {
+            launch = launch.env(environment, value.as_str());
+            secrets.push(value.to_string());
+        }
     }
     let secrets = zeroize::Zeroizing::new(secrets);
     let mut child = OwnedProcess::spawn(launch)

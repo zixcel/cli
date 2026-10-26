@@ -1,7 +1,10 @@
 //! Local-owner credential composition. Crowsi owns storage and one-use leases.
 use crate::{Error, Result};
+mod bindings;
 #[cfg(feature = "credential-store")]
 mod custody;
+#[cfg(feature = "credential-store")]
+mod field;
 mod options;
 #[cfg(feature = "credential-store")]
 mod terminal;
@@ -15,7 +18,7 @@ zix credential set --collection ALIAS --reference TENANT/SERVICE/PURPOSE/AUDIENC
 zix credential run --collection ALIAS --reference TENANT/SERVICE/PURPOSE/AUDIENCE/ID --host HOST --environment ZIX_NAME --manifest-sha256 HASH --executable-sha256 HASH -- NAMESPACE OPERATION [ARGUMENTS]
 
 Set reads a bounded, hidden terminal prompt; no secret argv, files or raw get command.
-Run selects one registered operation and supplies only its declared credential environment.
+zix credential run --collection ALIAS --bindings PRIVATE_JSON --manifest-sha256 HASH --executable-sha256 HASH -- NAMESPACE OPERATION [ARGUMENTS]\n\nRun selects one registered operation and supplies only its declared credential environment.
 Requires the Linux credential-store build, an existing persistent OS Secret Service collection,
 and an explicitly authorized local-owner operation. Never creates or auto-unlocks a collection.
 Lock affects the entire selected collection. Local removal does not revoke a provider token.";
@@ -43,7 +46,7 @@ pub(crate) fn validate_target(
     selected: &crate::Selected<'_>,
 ) -> Result<()> {
     let m = entry.manifest()?;
-    let audience = request.reference.split('/').nth(3);
+
     let credentials = selected
         .command
         .environment
@@ -51,14 +54,18 @@ pub(crate) fn validate_target(
         .map_or(&m.credential_environment, |e| &e.credential_environment);
     if request.manifest_sha256 != entry.manifest_sha256
         || request.executable_sha256 != entry.executable_sha256
-        || audience != Some(m.namespace.as_str())
-        || !credentials.contains(&request.environment)
     {
         return Err(Error("credential_target_mismatch"));
     }
-    // Explicit custody cannot be silently replaced by an inherited credential.
-    if std::env::var_os(&request.environment).is_some() {
-        return Err(Error("credential_environment_conflict"));
+    for b in request.credentials() {
+        if b.reference.split('/').nth(3) != Some(m.namespace.as_str())
+            || !credentials.contains(&b.environment)
+        {
+            return Err(Error("credential_target_mismatch"));
+        }
+        if std::env::var_os(&b.environment).is_some() {
+            return Err(Error("credential_environment_conflict"));
+        }
     }
     Ok(())
 }
@@ -67,7 +74,7 @@ pub(crate) fn resolve(
     request: &Request,
     entry: &crate::registry::Entry,
     selected: &crate::Selected<'_>,
-) -> Result<zeroize::Zeroizing<String>> {
+) -> Result<Vec<(String, zeroize::Zeroizing<String>)>> {
     validate_target(request, entry, selected)?;
     #[cfg(feature = "credential-store")]
     {

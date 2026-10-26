@@ -16,7 +16,7 @@ fn manifest_rejects_incompatible_unknown_conflicting_and_privileged_fields() {
         ("namespace", json!("api")),
         ("platform", json!("windows-x86_64")),
         ("credential_environment", json!(["LD_PRELOAD"])),
-        ("timeout_ms", json!(40001)),
+        ("timeout_ms", json!(120001)),
         ("unknown", json!(true)),
     ] {
         let mut m = original.clone();
