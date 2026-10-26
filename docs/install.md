@@ -82,7 +82,7 @@ requires zix 0.2.4 or newer; older dispatchers reject the unknown declaration.
 
 ## Linux credential-store package
 
-For `zix credential`, select the GNU package from version 0.3.0 or newer. It uses
+For `zix credential`, select the GNU package from version 0.3.1 or newer. It uses
 OS libsecret-1 and GLib/GIO, plus an existing session Secret Service. The static
 musl package keeps its original dependency footprint and does not enable custody.
 See [credential setup and scope](credentials.md) before registering a real token.

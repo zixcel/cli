@@ -1,0 +1,6 @@
+Original license retained from the official libsecret-rs repository.
+Package: libsecret-sys-0.9.0
+Published crate .cargo_vcs_info.json source: 7e6720f87b61cbc832b4ca998211d7c499df32a0
+Source: https://gitlab.gnome.org/World/Rust/libsecret-rs/-/blob/7e6720f87b61cbc832b4ca998211d7c499df32a0/LICENSE
+SHA256: b1e7e11b32bc5b78547a0d102ec2680113e7be64ddb4e9bacb39e9c374eba0ce
+The published crate omits its repository-root LICENSE file. This copy supplies that original material without replacing packaged notices.

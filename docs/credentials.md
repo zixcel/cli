@@ -136,7 +136,10 @@ It never connects to the caller's desktop bus or a live provider account.
 
 The release workflow builds static musl and GNU custody packages independently.
 `SHA256SUMS` continues to cover the musl archive for existing installers;
-`SHA256SUMS.gnu` covers the GNU archive. Each package records its source, target,
+`SHA256SUMS.gnu` covers the GNU archive. Version 0.3.0 was withdrawn from
+stable selection because its notice inventory omitted optional dependencies; use
+0.3.1 or newer. Inventory collection resolves all features and a regression test
+requires Crowsi, libsecret and GLib/GIO entries and retained license files. Each package records its source, target,
 binary hash and enabled features in `RELEASE.json`, retains dependency notices,
 and has an attested archive. Install official release bytes, not `target/` binaries.
 
