@@ -21,18 +21,24 @@ pub fn prompt(registry: &Registry, namespace: &str) -> Result<String> {
     for c in &m.commands {
         result.push_str(&format!("zix {} {}", m.namespace, c.words.join(" ")));
         for a in &c.arguments {
+            if c.effect == "operator-write" && a.name == "approval-sha256" {
+                continue;
+            }
             if a.required {
                 result.push_str(&format!(" --{} '<value>'", a.name));
             } else {
                 result.push_str(&format!(" [--{} '<value>']", a.name));
             }
         }
+        if c.effect == "operator-write" {
+            result.push_str(" [-y|--yes]");
+        }
         result.push('\n');
     }
     Ok(result)
 }
 pub fn help(registry: &Registry) -> Result<String> {
-    let mut text="zix <provider> <operation> [--argument value]\n\nCommands: api (import, project, routes, describe, diff, run), list, capabilities --format json, describe <provider>, prompt <provider>, extensions, credential, version\n\nInstalled providers (effects declared per command):\n".to_owned();
+    let mut text="zix <provider> <operation> [--argument value]\n\nWrite confirmation: y/yes, or -y/--yes for unattended execution.\nCommands: api (import, project, routes, describe, diff, run), list, capabilities --format json, describe <provider>, prompt <provider>, extensions, credential, version\n\nInstalled providers (effects declared per command):\n".to_owned();
     let value = capabilities(registry)?;
     for m in value["providers"]
         .as_array()

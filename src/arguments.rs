@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 pub struct Selected<'a> {
     pub(crate) command: &'a Command,
     pub(crate) arguments: BTreeMap<String, String>,
+    pub(crate) assume_yes: bool,
 }
 pub fn select<'a>(manifest: &'a Manifest, args: &[String]) -> Result<Selected<'a>> {
     if args.len() > 40
@@ -23,7 +24,11 @@ pub fn select<'a>(manifest: &'a Manifest, args: &[String]) -> Result<Selected<'a
     if matches.next().is_some() {
         return Err(Error("ambiguous_operation"));
     }
-    let remaining = &args[command.words.len()..];
+    let (remaining, assume_yes) = if command.effect == "operator-write" {
+        crate::confirmation::split(&args[command.words.len()..])
+    } else {
+        (args[command.words.len()..].to_vec(), false)
+    };
     if !remaining.len().is_multiple_of(2) {
         return Err(Error("invalid_arguments"));
     }
@@ -44,12 +49,16 @@ pub fn select<'a>(manifest: &'a Manifest, args: &[String]) -> Result<Selected<'a
             return Err(Error("invalid_arguments"));
         }
     }
-    if command
-        .arguments
-        .iter()
-        .any(|a| a.required && !arguments.contains_key(&a.name))
-    {
+    if command.arguments.iter().any(|a| {
+        a.required
+            && !arguments.contains_key(&a.name)
+            && !(command.effect == "operator-write" && a.name == "approval-sha256")
+    }) {
         return Err(Error("missing_argument"));
     }
-    Ok(Selected { command, arguments })
+    Ok(Selected {
+        command,
+        arguments,
+        assume_yes,
+    })
 }

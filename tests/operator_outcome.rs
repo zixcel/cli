@@ -73,7 +73,7 @@ fn interrupted_write_responses_require_readback_and_never_trigger_a_retry() {
             .stderr(Stdio::piped())
             .spawn()
             .unwrap();
-        writeln!(child.stdin.take().unwrap(), "{}", plan.digest()).unwrap();
+        writeln!(child.stdin.take().unwrap(), "yes").unwrap();
         let output = child.wait_with_output().unwrap();
         assert!(!output.status.success());
         let text = String::from_utf8(output.stdout).unwrap();

@@ -19,7 +19,7 @@ pub(crate) async fn dispatch_credential(
 }
 async fn dispatch_inner(
     entry: &Entry,
-    selected: Selected<'_>,
+    mut selected: Selected<'_>,
     credential: Option<&crate::credential::Request>,
 ) -> Result<Value> {
     if !entry.enabled {
@@ -29,7 +29,7 @@ async fn dispatch_inner(
     if !m.commands.contains(selected.command) {
         return Err(Error("operation_binding_mismatch"));
     }
-    crate::operator::authorize(&m, &entry.executable_sha256, &selected)?;
+    crate::operator::authorize(&m, &entry.executable_sha256, &mut selected)?;
     let snapshot = sealed::snapshot(entry)?;
     let tick = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)

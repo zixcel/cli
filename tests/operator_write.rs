@@ -92,7 +92,11 @@ fn explicit_terminal_confirmation_binds_the_actual_registered_plan_before_launch
         writeln!(
             child.stdin.take().unwrap(),
             "{}",
-            if accepted { p.digest() } else { String::new() }
+            if accepted {
+                "yes".to_owned()
+            } else {
+                String::new()
+            }
         )
         .unwrap();
         let out = child.wait_with_output().unwrap();

@@ -47,7 +47,8 @@ pub(super) async fn run(request: Request) -> Result<bool> {
     if matches!(
         request.action.as_str(),
         "set" | "remove" | "unlock" | "lock"
-    ) {
+    ) && (!request.assume_yes || request.action == "set")
+    {
         terminal::require_owner_terminal()?;
     }
     let store = connect(&request.collection)?;
@@ -76,13 +77,16 @@ pub(super) async fn run(request: Request) -> Result<bool> {
                 Err(BrokerError::NotFound) => false,
                 Err(e) => return Err(error(e)),
             };
-            terminal::confirm(&format!(
-                "{} {} in {} for {}",
-                if replacing { "Replace" } else { "Store" },
-                request.reference,
-                request.collection,
-                request.host
-            ))?;
+            terminal::confirm(
+                &format!(
+                    "{} {} in {} for {}",
+                    if replacing { "Replace" } else { "Store" },
+                    request.reference,
+                    request.collection,
+                    request.host
+                ),
+                request.assume_yes,
+            )?;
             let secret = SecretValue::new(terminal::read_secret()?.to_vec()).map_err(error)?;
             let entry = CredentialEntry::new(r, [request.host], secret).map_err(error)?;
             let revision = entry.metadata().revision().as_str().to_owned();
@@ -91,10 +95,13 @@ pub(super) async fn run(request: Request) -> Result<bool> {
         }
         "remove" => {
             let r = reference(&request)?;
-            terminal::confirm(&format!(
-                "Remove {} from {} (remote token remains valid)",
-                request.reference, request.collection
-            ))?;
+            terminal::confirm(
+                &format!(
+                    "Remove {} from {} (remote token remains valid)",
+                    request.reference, request.collection
+                ),
+                request.assume_yes,
+            )?;
             store.delete(&r).map_err(error)?;
             json!({"reference":request.reference,"removed":true,"remote_revoked":false})
         }

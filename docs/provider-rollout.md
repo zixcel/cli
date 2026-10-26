@@ -69,7 +69,9 @@ for redacting secrets they resolve internally and never returning them.
 
 Read and mutation effects are declared, not inferred from names or HTTP verbs.
 V1 cannot admit operator-write. V2 requires plan-file, approval-sha256 and a
-journal-directory and obtains independent terminal confirmation. The digest binds
+journal-directory in the provider protocol. Zix 0.5.0 obtains y/yes confirmation
+or an invocation-local -y/--yes, and computes approval-sha256 when omitted by the
+caller. The confirmation flags are not forwarded to providers. The digest binds
 the registered executable, catalog, version, operation and payload; it is not an
 identity signature, permission grant or replay journal. The provider owns expiry,
 one-use consumption, durable outcomes and drift/readback. Unlocking is not approval.
