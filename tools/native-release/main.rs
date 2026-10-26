@@ -68,6 +68,7 @@ fn run() -> Result<(), &'static str> {
     licenses::collect(&directory)?;
     let record = serde_json::json!({"schema":"zix-native-release/v1","package":env!("CARGO_PKG_NAME"),
         "version":env!("CARGO_PKG_VERSION"),"repository":env!("CARGO_PKG_REPOSITORY"),"source":source,"target":target,
+        "features":if cfg!(feature = "credential-store") { vec!["credential-store"] } else { vec![] },
         "binary":filename,"binary_sha256":archive::hash(&fs::read(binary).map_err(|_|"binary_unavailable")?)});
     fs::write(
         directory.join("RELEASE.json"),

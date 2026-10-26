@@ -36,6 +36,7 @@ impl Manifest {
                 "describe",
                 "prompt",
                 "extensions",
+                "credential",
                 "version",
             ]
             .contains(&self.namespace.as_str())

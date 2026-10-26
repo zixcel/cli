@@ -17,6 +17,14 @@ zix extensions inspect google --format json
 
 The initial supported host is Linux x86_64, including WSL. The release binary does not require Node, Rust, gcloud, a sibling checkout, or a private registry. An unavailable release or provider is an error; there is no source-install or similarly named provider fallback.
 
+## Local credential custody
+
+The GNU Linux package provides `zix credential` using the published Crowsi broker
+and the OS Secret Service. Register tokens through a hidden local terminal prompt
+and supply them only to a reviewed registered provider operation. There is no raw
+secret export or plaintext fallback. The existing static package remains available.
+[Credential setup, commands and trust boundaries](docs/credentials.md).
+
 ## API specifications
 
 Import selected OpenAPI or Google Discovery operations into a versioned catalog,
