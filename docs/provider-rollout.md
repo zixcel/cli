@@ -12,7 +12,7 @@ vendor owner; no central release action or credential is introduced.
 | zixcel-microsoft | Official partitioned Graph OpenAPI YAML | Selected user read |
 | zixcel-apple | Official App Store Connect OpenAPI ZIP/member, hashes distinct | App get/list |
 | zixcel-github | Official large OpenAPI JSON | Authenticated user / selected repository |
-| zixcel-domain | Existing ValueDomain v2 library and transport reused | Domain inventory / renewal filter |
+| zixcel-domain | Existing ValueDomain v2/DNS library and transport reused | Inventory, DNS export/inspection; native 0.3 adds explicit v2 record/migration writes |
 | zixcel-aws | Existing SigV4/custody contracts and coordinator socket client | Not a bearer-native adapter; coordinator / authority composition required |
 
 These are explicit initial read scopes, not claims that every vendor API is
@@ -82,3 +82,8 @@ external mutation. Inspect the provider's durable receipt and target state; neve
 blindly approve and resend the same operation. Errors before launch retain their
 ordinary admission/credential/approval diagnostics. An authenticated provider's
 valid error/receipt is interpreted according to its own contract.
+
+Domain operator entry is `zix domain …`; provider-specific aliases such as
+`zixcel value-domain` are not separate namespaces. Domain native 0.3 uses the
+existing v2 LocalPlan/terminal approval contract and provider-owned private
+profiles/journals. Distribution and live acceptance stay with the Domain owner.
