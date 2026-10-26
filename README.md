@@ -11,6 +11,8 @@ zix list
 zix google --help
 zix describe google --format json
 zix prompt google
+zix extensions list --format json
+zix extensions inspect google --format json
 ```
 
 The initial supported host is Linux x86_64, including WSL. The release binary does not require Node, Rust, gcloud, a sibling checkout, or a private registry. An unavailable release or provider is an error; there is no source-install or similarly named provider fallback.
@@ -79,3 +81,8 @@ prove that the external effect did not happen. The dispatcher reports
 `operator_write_outcome_unknown` and never retries. Reconcile the provider receipt
 and target state before planning a new operation. Detailed authentication/profile
 and cancellation ownership is described in [provider rollout](docs/provider-rollout.md).
+
+Version 0.2.5 adds registration inventory (including disabled extensions) and atomic,
+expected-hash-bound `extensions replace` for upgrades and rollbacks. Provider catalogs
+remain independently owned; no provider-specific command or package lookup is built
+into the dispatcher. See [installation and lifecycle](docs/install.md).

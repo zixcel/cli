@@ -6,7 +6,10 @@ use std::{
 };
 #[test]
 fn verified_execution_copy_cannot_be_changed_or_retargeted() {
-    let root = tempfile::tempdir().unwrap();
+    let root = tempfile::Builder::new()
+        .permissions(fs::Permissions::from_mode(0o700))
+        .tempdir()
+        .unwrap();
     let executable = root.path().join("provider");
     fs::copy(std::env::current_exe().unwrap(), &executable).unwrap();
     fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();

@@ -43,5 +43,10 @@ pub(crate) fn save(registry: &Registry, path: &Path) -> Result<()> {
         let _ = std::fs::remove_file(temporary);
         return Err(Error("registry_unavailable"));
     }
+    // Rename commits the new registration atomically. A directory-sync failure
+    // after that point is an uncertain durability result, never a failed preflight.
+    std::fs::File::open(parent)
+        .and_then(|directory| directory.sync_all())
+        .map_err(|_| Error("registry_commit_unknown"))?;
     Ok(())
 }

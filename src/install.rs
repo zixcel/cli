@@ -1,8 +1,4 @@
-use crate::{
-    Error, Result, files,
-    manifest::Manifest,
-    registry::{Entry, Registry},
-};
+use crate::{Error, Result, files, registry::Registry};
 use std::{
     fs::{DirBuilder, OpenOptions},
     os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt},
@@ -41,42 +37,8 @@ pub fn mutate(path: &Path, operation: impl FnOnce(&mut Registry) -> Result<()>) 
     operation(&mut registry)?;
     registry.save(path)
 }
-pub fn add(
-    registry: &mut Registry,
-    manifest_path: &Path,
-    manifest_sha: &str,
-    executable: &Path,
-    executable_sha: &str,
-) -> Result<()> {
-    if !files::valid_digest(manifest_sha) || !files::valid_digest(executable_sha) {
-        return Err(Error("invalid_digest"));
-    }
-    let bytes = files::read(manifest_path, 16384, false)?;
-    if files::digest(&bytes) != manifest_sha {
-        return Err(Error("integrity_mismatch"));
-    }
-    let manifest = Manifest::parse(&bytes)?;
-    if registry.entries.len() >= 32
-        || registry.entries.iter().any(|e| {
-            e.manifest()
-                .is_ok_and(|m| m.namespace == manifest.namespace)
-        })
-    {
-        return Err(Error("namespace_collision"));
-    }
-    let binary = files::read(executable, 128 * 1024 * 1024, true)?;
-    if files::digest(&binary) != executable_sha || !binary.starts_with(b"\x7fELF") {
-        return Err(Error("integrity_mismatch"));
-    }
-    registry.entries.push(Entry {
-        enabled: true,
-        manifest_text: String::from_utf8(bytes).map_err(|_| Error("invalid_manifest"))?,
-        manifest_sha256: manifest_sha.to_owned(),
-        executable: executable.to_path_buf(),
-        executable_sha256: executable_sha.to_owned(),
-    });
-    Ok(())
-}
+mod candidate;
+pub use candidate::{add, replace};
 pub fn change(registry: &mut Registry, name: &str, operation: &str) -> Result<()> {
     let index = registry
         .entries

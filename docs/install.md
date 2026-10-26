@@ -20,7 +20,38 @@ Extract each verified archive in its download directory and verify its `CONTENTS
 "$ZIX_PACKAGE/zix" extensions add   --manifest "$GOOGLE_PACKAGE/google.extension.json"   --manifest-sha256 "$(sha256sum "$GOOGLE_PACKAGE/google.extension.json" | cut -d' ' -f1)"   --executable "$GOOGLE_PACKAGE/zix-google"   --executable-sha256 "$(sha256sum "$GOOGLE_PACKAGE/zix-google" | cut -d' ' -f1)"
 ```
 
-Use `extensions disable google`, `extensions enable google`, or `extensions remove google` to manage registration. Removal changes the registry, not package files or Google credentials. Updating a package requires an explicit remove/add of reviewed replacement bytes.
+Use `extensions disable google`, `extensions enable google`, or `extensions remove google` to manage registration. Removal changes the registry, not package files or Google credentials. Use `extensions list --format json` to inspect all registrations, including disabled ones.
+`extensions inspect google --format json` returns the selected registration's enabled
+state, package/version, exact hashes, executable path and manifest without executing
+provider code. Missing binaries remain inspectable; capabilities and provider execution
+still require enabled registrations.
+
+With zix >=0.2.5, update or roll back by validating and replacing one registration
+under one lock. Do not remove the old registration first:
+
+```sh
+zix extensions inspect google --format json > /absolute/private/google-before.json
+zix extensions replace --manifest "$GOOGLE_PACKAGE/google.extension.json" \
+  --manifest-sha256 REVIEWED_NEW_MANIFEST_SHA256 \
+  --executable "$GOOGLE_PACKAGE/zix-google" \
+  --executable-sha256 REVIEWED_NEW_EXECUTABLE_SHA256 \
+  --expected-manifest-sha256 OBSERVED_OLD_MANIFEST_SHA256 \
+  --expected-executable-sha256 OBSERVED_OLD_EXECUTABLE_SHA256
+```
+
+The expected hashes come from `.entry` in the inspection response. Stale observations,
+namespace/package changes, incompatible manifests and invalid new files are rejected
+before saving. Enabled/disabled state is preserved, including on a deliberate rollback.
+The registry is atomically renamed and its directory synced. `registry_commit_unknown`
+means inspect the registration after a post-rename durability failure; never blindly
+restore a prior snapshot over another operator's work. An in-flight process keeps its
+already verified executable; subsequent invocations see a complete old or new entry.
+
+Keep the previous immutable package for rollback and use a fresh inspection with
+`extensions replace` to select its reviewed hashes. Registration removal leaves files
+and credentials intact. Remove unreferenced package directories only after checking
+all registry references and any retained rollback evidence. No automatic downgrade,
+latest-version selection, dependency solver or package activation is introduced.
 
 ## Inspect one Google service-account key
 

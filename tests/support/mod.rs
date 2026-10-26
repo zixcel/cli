@@ -12,9 +12,13 @@ pub struct Context {
 }
 impl Context {
     pub fn new(timeout: u64) -> Self {
-        let root = tempfile::tempdir().unwrap();
+        let root = tempfile::Builder::new()
+            .permissions(fs::Permissions::from_mode(0o700))
+            .tempdir()
+            .unwrap();
         let directory = root.path().join("provider with spaces");
         fs::create_dir(&directory).unwrap();
+        fs::set_permissions(&directory, fs::Permissions::from_mode(0o700)).unwrap();
         let executable = directory.join("probe");
         fs::copy(env!("CARGO_BIN_EXE_zix-contract-probe"), &executable).unwrap();
         fs::set_permissions(&executable, fs::Permissions::from_mode(0o700)).unwrap();
@@ -24,6 +28,7 @@ impl Context {
             "credential_environment":["ZIX_TEST_ACCESS_TOKEN"],
             "commands":[{"id":"sample.inspect","words":["inspect"],"effect":"read","description":"Synthetic provider inspection.",
                 "required_permissions":[],"arguments":[{"name":"mode","required":true,"maximum":32},{"name":"value","required":false,"maximum":200}]}]}).to_string()).unwrap();
+        fs::set_permissions(&manifest, fs::Permissions::from_mode(0o600)).unwrap();
         Self {
             root,
             executable,

@@ -7,6 +7,7 @@ pub mod command_line;
 pub mod discovery;
 mod error;
 pub mod execution;
+mod extension_inventory;
 mod extensions;
 pub mod files;
 pub mod install;
