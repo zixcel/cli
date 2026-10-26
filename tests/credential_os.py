@@ -112,7 +112,7 @@ def main():
         root = Path(os.environ["XDG_CONFIG_HOME"])
         manifest = {"schema": "zix-extension/v1", "package": "sample-provider", "version": "0.1.0",
                     "namespace": "sample", "platform": "linux-x86_64", "protocol": "zix-provider/v1",
-                    "timeout_ms": 1000, "credential_environment": ["ZIX_TEST_ACCESS_TOKEN"],
+                    "timeout_ms": 1000, "credential_environment": ["ZIX_TEST_ACCESS_TOKEN", "ZIX_TEST_SECOND_TOKEN"],
                     "commands": [{"id": "sample.inspect", "words": ["inspect"], "effect": "read",
                                   "description": "Synthetic inspection", "required_permissions": [],
                                   "arguments": [{"name": "mode", "required": True, "maximum": 32}]}]}
@@ -143,6 +143,31 @@ def main():
         wrong_host = use.copy()
         wrong_host[wrong_host.index("api.example.com")] = "other.example.com"
         run(wrong_host, False)
+        # Multiple leases are resolved before starting a child; select only a cache field.
+        second_ref = ["--collection", "default", "--reference", "local/test/cache/sample/second"]
+        cache = json.dumps({"access_token": SECRET.decode(), "refresh_token": "synthetic-refresh-never-forward"}).encode()
+        terminal(["credential", "set", *second_ref, "--host", "api.example.com"],
+                 [(b"Type yes", b"yes\n"), (b"Secret (hidden", cache + b"\n")])
+        bindings = root / "bindings.json"
+        document = {"schema": "zix-credential-bindings/v1", "credentials": [
+            {"reference": "local/test/api/sample/default", "host": "api.example.com", "environment": "ZIX_TEST_ACCESS_TOKEN"},
+            {"reference": "local/test/cache/sample/second", "host": "api.example.com", "environment": "ZIX_TEST_SECOND_TOKEN", "field": "access_token"}]}
+        # Use the reference already enrolled above, independent of fixture spelling.
+        document["credentials"][0]["reference"] = ref[ref.index("--reference") + 1]
+        bindings.write_text(json.dumps(document)); bindings.chmod(0o600)
+        multi = ["credential", "run", *collection, "--bindings", str(bindings),
+                 "--manifest-sha256", digest(path), "--executable-sha256", digest(probe),
+                 "--", "sample", "inspect", "--mode", "both"]
+        assert json.loads(run(multi).stdout)["result"]["both"] is True
+        assert b"provider_secret_output" in run(multi[:-1] + ["secret-second"], False).stderr
+        document["credentials"][1]["reference"] = "local/test/cache/sample/missing"
+        bindings.write_text(json.dumps(document))
+        assert b"credential_not_found" in run(multi, False).stderr
+        document["credentials"][1]["environment"] = "ZIX_UNDECLARED_TOKEN"
+        bindings.write_text(json.dumps(document))
+        run(multi, False)
+        bindings.chmod(0o644)
+        assert b"unsafe_credential_bindings" in run(multi, False).stderr
         # New process and provider restart must preserve the credential revision.
         daemon.terminate()
         daemon.wait(timeout=5)

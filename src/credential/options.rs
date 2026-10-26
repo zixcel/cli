@@ -11,6 +11,7 @@ pub(crate) struct Request {
     pub manifest_sha256: String,
     pub executable_sha256: String,
     pub command: Vec<String>,
+    pub(super) bindings: Vec<super::bindings::Binding>,
 }
 
 pub(super) fn parse(args: &[String]) -> Result<Request> {
@@ -19,6 +20,12 @@ pub(super) fn parse(args: &[String]) -> Result<Request> {
         "status" | "unlock" | "lock" => &["--collection"],
         "inspect" | "remove" => &["--collection", "--reference"],
         "set" => &["--collection", "--reference", "--host"],
+        "run" if args.iter().any(|a| a == "--bindings") => &[
+            "--collection",
+            "--bindings",
+            "--manifest-sha256",
+            "--executable-sha256",
+        ],
         "run" => &[
             "--collection",
             "--reference",
@@ -45,6 +52,11 @@ pub(super) fn parse(args: &[String]) -> Result<Request> {
             return Err(Error("invalid_arguments"));
         }
     }
+    let bindings = flags
+        .remove("--bindings")
+        .map(|p| super::bindings::read(&p))
+        .transpose()?
+        .unwrap_or_default();
     let mut get = |key| flags.remove(key).unwrap_or_default();
     let request = Request {
         action: action.into(),
@@ -54,6 +66,7 @@ pub(super) fn parse(args: &[String]) -> Result<Request> {
         environment: get("--environment"),
         manifest_sha256: get("--manifest-sha256"),
         executable_sha256: get("--executable-sha256"),
+        bindings,
         command: if end < args.len() {
             args[end + 1..].to_vec()
         } else {
@@ -75,12 +88,13 @@ pub(super) fn parse(args: &[String]) -> Result<Request> {
     if action == "run"
         && (!files::valid_digest(&request.manifest_sha256)
             || !files::valid_digest(&request.executable_sha256)
-            || !request.environment.starts_with("ZIX_")
-            || request.environment.len() > 80
-            || !request
-                .environment
-                .bytes()
-                .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_'))
+            || (request.bindings.is_empty()
+                && (!request.environment.starts_with("ZIX_")
+                    || request.environment.len() > 80
+                    || !request
+                        .environment
+                        .bytes()
+                        .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_'))))
     {
         return Err(Error("invalid_credential_binding"));
     }
@@ -105,4 +119,36 @@ fn valid_host(host: &str) -> bool {
                     .bytes()
                     .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
         })
+}
+
+pub(super) fn validate_binding(b: &super::bindings::Binding) -> Result<()> {
+    let parts: Vec<_> = b.reference.split('/').collect();
+    if parts.len() != 5
+        || parts.iter().any(|p| !component(p, 64))
+        || !valid_host(&b.host)
+        || !b.environment.starts_with("ZIX_")
+        || b.environment.len() > 80
+        || !b
+            .environment
+            .bytes()
+            .all(|b| b.is_ascii_uppercase() || b.is_ascii_digit() || b == b'_')
+        || b.field.as_ref().is_some_and(|f| !component(f, 64))
+    {
+        return Err(Error("invalid_credential_binding"));
+    }
+    Ok(())
+}
+impl Request {
+    pub(super) fn credentials(&self) -> Vec<super::bindings::Binding> {
+        if self.bindings.is_empty() {
+            vec![super::bindings::Binding {
+                reference: self.reference.clone(),
+                host: self.host.clone(),
+                environment: self.environment.clone(),
+                field: None,
+            }]
+        } else {
+            self.bindings.clone()
+        }
+    }
 }

@@ -88,8 +88,23 @@ an inherited value for that credential. Executable sealing and any operator-writ
 approval happen before reading the secret. Crowsi issues and consumes one 30-second
 lease bound to the local invocation, executable, manifest, operation and arguments;
 the host must match the stored allowed host. A provider update requires reviewing
-new hashes. One invocation supplies one stored credential; operations requiring
-multiple stored credentials are not supported by this interface.
+new hashes. Since CLI 0.4.0, `--bindings /absolute/private/bindings.json` replaces
+`--reference`, `--host`, and `--environment` for up to eight credentials. All
+bindings are validated and resolved before the provider starts; partial failure
+starts no child. The file must be owner-only, canonical, and regular:
+
+```json
+{"schema":"zix-credential-bindings/v1","credentials":[
+  {"reference":"local/provider/api/sample/main","host":"api.example.com","environment":"ZIX_TEST_ACCESS_TOKEN"},
+  {"reference":"local/provider/cache/sample/second","host":"api.example.com","environment":"ZIX_TEST_SECOND_TOKEN","field":"access_token"}
+]}
+```
+
+The optional `field` selects one top-level string in a stored JSON cache; refresh
+tokens and other fields are not forwarded. Duplicate fields, control characters,
+undeclared environments, and inherited-value conflicts fail closed. Each binding
+receives its own Crowsi lease. A cache token's expiry is checked by the provider;
+refresh is an explicit provider operation, never an implicit custody action.
 
 Only the selected child's declared environment receives the value. Zix never
 mutates its own process environment or writes a token cache. Plain `zix domain
@@ -149,3 +164,7 @@ Design reviewed with Coela engineering catalog 0.2.4, source
 Rust resource/failure guidance 0.1.3. Source review, synthetic acceptance,
 published artifacts, local provider readiness and live-account use are separate
 evidence scopes; one does not prove the others.
+
+Native manifest timeouts remain explicit and bounded; CLI 0.4.0 admits 50–120000 ms.
+The larger ceiling supports providers that perform separately bounded runtime
+read/write/read processes. Existing providers retain their declared timeouts.

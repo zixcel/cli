@@ -65,6 +65,12 @@ fn main() {
     if mode == "secret" {
         result = json!({"secret":std::env::var("ZIX_TEST_ACCESS_TOKEN").unwrap()});
     }
+    if mode == "secret-second" {
+        result = json!({"secret":std::env::var("ZIX_TEST_SECOND_TOKEN").unwrap()});
+    }
+    if mode == "both" {
+        result = json!({"both":std::env::var_os("ZIX_TEST_ACCESS_TOKEN").is_some() && std::env::var_os("ZIX_TEST_SECOND_TOKEN").is_some()});
+    }
     let mut response = json!({"schema":"zix-provider/v1","id":request["id"],"operation":request["operation"],"result":result});
     if mode == "wrong-id" {
         response["id"] = json!("wrong");

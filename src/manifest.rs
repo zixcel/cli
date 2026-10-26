@@ -49,7 +49,7 @@ impl Manifest {
             || self.commands.len() > 32
             || self.credential_environment.len() > 8
             || self.runtime_environment.len() > 1
-            || !(50..=40000).contains(&self.timeout_ms)
+            || !(50..=120000).contains(&self.timeout_ms)
         {
             return Err(Error("invalid_manifest"));
         }

@@ -8,8 +8,24 @@ pub(super) fn resolve(
     request: &Request,
     entry: &Entry,
     selected: &Selected<'_>,
+) -> Result<Vec<(String, Zeroizing<String>)>> {
+    request
+        .credentials()
+        .iter()
+        .map(|credential| {
+            resolve_one(request, credential, entry, selected)
+                .map(|s| (credential.environment.clone(), s))
+        })
+        .collect()
+}
+fn resolve_one(
+    request: &Request,
+    credential: &super::bindings::Binding,
+    entry: &Entry,
+    selected: &Selected<'_>,
 ) -> Result<Zeroizing<String>> {
-    let reference = custody::reference(request)?;
+    let reference = crowsi_credential_broker::SecretRef::parse_canonical(&credential.reference)
+        .map_err(custody::error)?;
     let audience = reference.scope().audience();
     let broker =
         Broker::new(Arc::new(custody::connect(&request.collection)?)).map_err(custody::error)?;
@@ -27,26 +43,14 @@ pub(super) fn resolve(
         "local-owner-invocation",
     )
     .map_err(custody::error)?;
-    let access = AccessRequest::new(reference.clone(), audience, &request.host, 30)
+    let access = AccessRequest::new(reference.clone(), audience, &credential.host, 30)
         .map_err(custody::error)?;
     let grant = broker
         .issue_bound(access, binding.clone())
         .map_err(custody::error)?;
     let used = broker
-        .consume_bound(grant.token(), audience, &request.host, &binding)
+        .consume_bound(grant.token(), audience, &credential.host, &binding)
         .map_err(custody::error)?;
-    used.secret.expose(|bytes| {
-        if bytes.is_empty()
-            || bytes.len() > 16384
-            || !bytes.is_ascii()
-            || bytes.iter().any(u8::is_ascii_control)
-        {
-            return Err(Error("invalid_credential_environment"));
-        }
-        Ok(Zeroizing::new(
-            std::str::from_utf8(bytes)
-                .map_err(|_| Error("invalid_credential_environment"))?
-                .to_owned(),
-        ))
-    })
+    used.secret
+        .expose(|bytes| super::field::select(bytes, credential.field.as_deref()))
 }
