@@ -19,6 +19,8 @@ jobs:
       artifact: ${{ steps.upload.outputs.artifact-id }}
       sha256: ${{ steps.digest.outputs.sha256 }}
       filename: ${{ steps.digest.outputs.filename }}
+      gnu_sha256: ${{ steps.digest.outputs.gnu_sha256 }}
+      gnu_filename: ${{ steps.digest.outputs.gnu_filename }}
     env:
       ZIX_RELEASE_SOURCE: ${{ github.sha }}
       RELEASE_PACKAGE: zix-cli
@@ -42,6 +44,8 @@ jobs:
           toolchain: 1.97.1
           targets: x86_64-unknown-linux-musl
           components: rustfmt, clippy
+      - name: Install Linux custody and isolated acceptance dependencies
+        run: sudo apt-get update -qq && sudo apt-get install -y --no-install-recommends libsecret-1-dev gnome-keyring dbus-x11 musl-tools
       - name: Verify version, tests and static analysis
         run: |
           set -euo pipefail
@@ -51,6 +55,9 @@ jobs:
           cargo fmt --all --check
           cargo test --locked --workspace --all-targets --all-features
           cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
+          python3 tests/credential_os.py target/debug/zix target/debug/zix-contract-probe
+          cargo test --locked --workspace --all-targets --no-default-features
+          cargo clippy --locked --workspace --all-targets --no-default-features -- -D warnings
       - name: Build static Linux package and retain dependency notices
         run: |
           set -euo pipefail
@@ -59,18 +66,32 @@ jobs:
           cargo build --locked --release -p zix-cli --bin zix --target x86_64-unknown-linux-musl
           target/x86_64-unknown-linux-musl/release/zix version
           cargo run --locked -p zix-cli --bin zix-package -- target/x86_64-unknown-linux-musl/release/zix release x86_64-unknown-linux-musl
+      - name: Build Linux custody package with the published Crowsi broker
+        run: |
+          set -euo pipefail
+          cargo build --locked --release -p zix-cli --bin zix --features credential-store --target x86_64-unknown-linux-gnu
+          target/x86_64-unknown-linux-gnu/release/zix version
+          cargo run --locked -p zix-cli --bin zix-package --features credential-store -- target/x86_64-unknown-linux-gnu/release/zix release-gnu x86_64-unknown-linux-gnu
+          cp release-gnu/*.tar.gz release/
+          cp release-gnu/SHA256SUMS release/SHA256SUMS.gnu
       - name: Bind prepared archive
         id: digest
         run: |
           set -euo pipefail
           cd release
           sha256sum --check SHA256SUMS
-          test "$(find . -maxdepth 1 -name '*.tar.gz' | wc -l)" = 1
+          sha256sum --check SHA256SUMS.gnu
+          test "$(find . -maxdepth 1 -name '*.tar.gz' | wc -l)" = 2
           read -r digest filename < SHA256SUMS
           [[ "$digest" =~ ^[a-f0-9]{64}$ ]]
           [[ "$filename" =~ ^[a-z0-9.-]+-x86_64-unknown-linux-musl\.tar\.gz$ ]]
           echo "sha256=$digest" >> "$GITHUB_OUTPUT"
           echo "filename=$filename" >> "$GITHUB_OUTPUT"
+          read -r gnu_digest gnu_filename < SHA256SUMS.gnu
+          [[ "$gnu_digest" =~ ^[a-f0-9]{64}$ ]]
+          [[ "$gnu_filename" =~ ^[a-z0-9.-]+-x86_64-unknown-linux-gnu\.tar\.gz$ ]]
+          echo "gnu_sha256=$gnu_digest" >> "$GITHUB_OUTPUT"
+          echo "gnu_filename=$gnu_filename" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         id: upload
         with:
@@ -78,6 +99,7 @@ jobs:
           path: |
             release/*.tar.gz
             release/SHA256SUMS
+            release/SHA256SUMS.gnu
           if-no-files-found: error
           retention-days: 30
   publish:
@@ -102,17 +124,25 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           EXPECTED_SHA: ${{ needs.prepare.outputs.sha256 }}
           ARCHIVE: ${{ needs.prepare.outputs.filename }}
+          GNU_EXPECTED_SHA: ${{ needs.prepare.outputs.gnu_sha256 }}
+          GNU_ARCHIVE: ${{ needs.prepare.outputs.gnu_filename }}
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/native"
           test "$(sha256sum "$ARCHIVE" | cut -d' ' -f1)" = "$EXPECTED_SHA"
+          test "$(sha256sum "$GNU_ARCHIVE" | cut -d' ' -f1)" = "$GNU_EXPECTED_SHA"
+          sha256sum --check SHA256SUMS
+          sha256sum --check SHA256SUMS.gnu
           if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME" > "$RUNNER_TEMP/existing-release" 2> "$RUNNER_TEMP/release-error"; then
             echo "Existing release: verify only, never replace."
           else
             grep -q "(HTTP 404)" "$RUNNER_TEMP/release-error"
             test "$GITHUB_RUN_ATTEMPT" = 1
-            gh release create "$GITHUB_REF_NAME" "$ARCHIVE" SHA256SUMS --repo "$GITHUB_REPOSITORY" --verify-tag --target "$GITHUB_SHA" --title "$GITHUB_REF_NAME" --notes "Native Linux/WSL binary; source $GITHUB_SHA; SHA256 $EXPECTED_SHA."
+            gh release create "$GITHUB_REF_NAME" "$ARCHIVE" "$GNU_ARCHIVE" SHA256SUMS SHA256SUMS.gnu --repo "$GITHUB_REPOSITORY" --verify-tag --target "$GITHUB_SHA" --title "$GITHUB_REF_NAME" --notes "Linux/WSL packages; source $GITHUB_SHA. Static SHA256 $EXPECTED_SHA. GNU custody build SHA256 $GNU_EXPECTED_SHA; requires OS libsecret, GLib and Secret Service."
           fi
           mkdir readback
           gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern "$ARCHIVE" --dir readback
           test "$(sha256sum "readback/$ARCHIVE" | cut -d' ' -f1)" = "$EXPECTED_SHA"
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern "$GNU_ARCHIVE" --pattern SHA256SUMS.gnu --dir readback
+          test "$(sha256sum "readback/$GNU_ARCHIVE" | cut -d' ' -f1)" = "$GNU_EXPECTED_SHA"
+          (cd readback && sha256sum --check SHA256SUMS.gnu)

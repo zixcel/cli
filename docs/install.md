@@ -79,3 +79,28 @@ not a caller-supplied runtime override. An omitted declaration keeps the existin
 provider-wide requirements. Public read commands can therefore run without PATs
 or DBus, while custody commands keep their explicit session requirements. This
 requires zix 0.2.4 or newer; older dispatchers reject the unknown declaration.
+
+## Linux credential-store package
+
+For `zix credential`, select the GNU package from version 0.3.0 or newer. It uses
+OS libsecret-1 and GLib/GIO, plus an existing session Secret Service. The static
+musl package keeps its original dependency footprint and does not enable custody.
+See [credential setup and scope](credentials.md) before registering a real token.
+
+Download the GNU archive and its separate checksum file into a fresh private
+version-specific directory (replace VERSION with an explicit published version):
+
+```sh
+gh release download vVERSION --repo zixcel/cli \
+  --pattern '*-x86_64-unknown-linux-gnu.tar.gz' --pattern SHA256SUMS.gnu \
+  --dir /absolute/private/download-directory
+(cd /absolute/private/download-directory && sha256sum --check SHA256SUMS.gnu)
+```
+
+Verify the archive attestation when supported, extract, verify `CONTENTS.sha256`
+and check `RELEASE.json` source, target and `features: ["credential-store"]`.
+Select that immutable package's `zix` binary using the same local executable link;
+the extensions registry and already installed provider packages need no migration.
+Keep the previous official package for rollback. Switching back to static disables
+custody commands without deleting OS credentials. Real OS collection provisioning
+and unlock prompts are separate from the synthetic package acceptance.

@@ -7,6 +7,21 @@ mod environment;
 mod output;
 use output::bounded;
 pub async fn dispatch(entry: &Entry, selected: Selected<'_>) -> Result<Value> {
+    dispatch_inner(entry, selected, None).await
+}
+#[cfg(feature = "credential-store")]
+pub(crate) async fn dispatch_credential(
+    entry: &Entry,
+    selected: Selected<'_>,
+    credential: &crate::credential::Request,
+) -> Result<Value> {
+    dispatch_inner(entry, selected, Some(credential)).await
+}
+async fn dispatch_inner(
+    entry: &Entry,
+    selected: Selected<'_>,
+    credential: Option<&crate::credential::Request>,
+) -> Result<Value> {
     if !entry.enabled {
         return Err(Error("disabled"));
     }
@@ -29,7 +44,15 @@ pub async fn dispatch(entry: &Entry, selected: Selected<'_>) -> Result<Value> {
             serde_json::to_value(crate::operator::binding(&m, &entry.executable_sha256)?)
                 .map_err(|_| Error("invalid_manifest"))?;
     }
-    let (launch, secrets) = environment::launch(&snapshot.path, &m, selected.command)?;
+    let extra = credential
+        .map(|c| crate::credential::resolve(c, entry, &selected))
+        .transpose()?;
+    let (mut launch, mut secrets) = environment::launch(&snapshot.path, &m, selected.command)?;
+    if let (Some(c), Some(value)) = (credential, extra.as_ref()) {
+        launch = launch.env(&c.environment, value.as_str());
+        secrets.push(value.to_string());
+    }
+    let secrets = zeroize::Zeroizing::new(secrets);
     let mut child = OwnedProcess::spawn(launch)
         .await
         .map_err(|_| Error("provider_start_failed"))?;

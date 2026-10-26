@@ -1,6 +1,6 @@
 [package]
 name = "zix-cli"
-version = "0.2.5"
+version = "0.3.0"
 edition = "2024"
 rust-version = "1.97"
 license = "Apache-2.0"
@@ -28,9 +28,17 @@ zixcel-bounded-io = { git = "https://github.com/zixcel/zixcel-contracts", rev = 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = { version = "1.0", features = ["arbitrary_precision"] }
 sha2 = "0.11"
-rustix = { version = "1.1", features = ["fs", "process"] }
+rustix = { version = "1.1", features = ["fs", "process", "termios"] }
 crowsi-process-adapter = "=0.10.0"
+zeroize = "1.9.1"
 tokio = { version = "1.49", features = ["rt", "macros", "io-util", "time", "signal"] }
+
+[features]
+default = []
+credential-store = ["dep:crowsi-credential-broker"]
+
+[target.'cfg(target_os = "linux")'.dependencies]
+crowsi-credential-broker = { version = "=0.1.2", default-features = false, features = ["linux-secret-service"], optional = true }
 
 [dev-dependencies]
 tempfile = "3.27"

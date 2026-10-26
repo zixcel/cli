@@ -4,6 +4,7 @@ mod api_command;
 pub mod api_spec;
 mod arguments;
 pub mod command_line;
+mod credential;
 pub mod discovery;
 mod error;
 pub mod execution;

@@ -4,7 +4,7 @@ use crate::{
     select,
 };
 pub async fn run(args: &[String]) -> Result<bool> {
-    if args.len() > 48
+    if args.len() > 64
         || args
             .iter()
             .any(|a| a.len() > 4096 || a.bytes().any(|b| b.is_ascii_control()))
@@ -17,6 +17,9 @@ pub async fn run(args: &[String]) -> Result<bool> {
     }
     if args.first().is_some_and(|a| a == "api") {
         return crate::api_command::run(&args[1..]).await;
+    }
+    if args.first().is_some_and(|a| a == "credential") {
+        return crate::credential::run(&args[1..]).await;
     }
     let path = registry::location()?;
     if args.first().is_some_and(|a| a == "extensions") {
