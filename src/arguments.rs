@@ -24,10 +24,11 @@ pub fn select<'a>(manifest: &'a Manifest, args: &[String]) -> Result<Selected<'a
     if matches.next().is_some() {
         return Err(Error("ambiguous_operation"));
     }
-    let (remaining, assume_yes) = crate::confirmation::split(&args[command.words.len()..]);
-    if assume_yes && command.effect != "operator-write" {
-        return Err(Error("confirmation_not_supported"));
-    }
+    let (remaining, assume_yes) = if command.effect == "operator-write" {
+        crate::confirmation::split(&args[command.words.len()..])
+    } else {
+        (args[command.words.len()..].to_vec(), false)
+    };
     if !remaining.len().is_multiple_of(2) {
         return Err(Error("invalid_arguments"));
     }

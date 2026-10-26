@@ -105,3 +105,28 @@ fn yes_does_not_bypass_pinned_hash_operation_binding_or_private_file_checks() {
     assert!(!r.status.success());
     assert!(String::from_utf8_lossy(&r.stderr).contains("unsafe_plan_file"));
 }
+
+#[test]
+fn read_argument_named_yes_keeps_its_existing_value_semantics() {
+    let c = Context::new(1000);
+    let mut m: Value = serde_json::from_slice(&std::fs::read(&c.manifest).unwrap()).unwrap();
+    m["commands"][0]["arguments"]
+        .as_array_mut()
+        .unwrap()
+        .push(json!({"name":"yes","required":false,"maximum":32}));
+    std::fs::write(&c.manifest, m.to_string()).unwrap();
+    assert!(c.install().status.success());
+    let out = c.run(&[
+        "sample",
+        "inspect",
+        "--mode",
+        "echo",
+        "--yes",
+        "literal-value",
+    ]);
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
+}
