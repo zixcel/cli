@@ -11,6 +11,8 @@ pub async fn run(args: &[String]) -> Result<bool> {
     {
         return Err(Error("invalid_arguments"));
     }
+    let normalized = crate::confirmation::leading(args);
+    let args = normalized.as_slice();
     if args == ["version"] || args == ["--version"] {
         println!("zix {}", env!("CARGO_PKG_VERSION"));
         return Ok(true);

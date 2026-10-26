@@ -123,13 +123,13 @@ def main():
         run(["extensions", "add", "--manifest", str(path), "--manifest-sha256", digest(path),
              "--executable", probe, "--executable-sha256", digest(probe)])
         terminal(["credential", "set", *ref, "--host", "api.example.com"],
-                 [(b"Type yes", b"yes\n"), (b"Secret (hidden", SECRET + b"\n")])
+                 [(b"Proceed?", b"y\n"), (b"Secret (hidden", SECRET + b"\n")])
         before = json.loads(run(["credential", "inspect", *ref]).stdout)
         terminal(["credential", "set", *ref, "--host", "api.example.com"],
-                 [(b"Type yes", b"yes\n"), (b"Secret (hidden", b"\x03")], success=False)
+                 [(b"Proceed?", b"yes\n"), (b"Secret (hidden", b"\x03")], success=False)
         assert json.loads(run(["credential", "inspect", *ref]).stdout) == before
         terminal(["credential", "set", *ref, "--host", "api.example.com"],
-                 [(b"Type yes", b"yes\n"), (b"Secret (hidden", SECRET + b"\n")])
+                 [(b"Proceed?", b"yes\n"), (b"Secret (hidden", SECRET + b"\n")])
         rotated = json.loads(run(["credential", "inspect", *ref]).stdout)
         assert rotated["result"]["revision"] != before["result"]["revision"]
         before = rotated
@@ -147,7 +147,7 @@ def main():
         second_ref = ["--collection", "default", "--reference", "local/test/cache/sample/second"]
         cache = json.dumps({"access_token": SECRET.decode(), "refresh_token": "synthetic-refresh-never-forward"}).encode()
         terminal(["credential", "set", *second_ref, "--host", "api.example.com"],
-                 [(b"Type yes", b"yes\n"), (b"Secret (hidden", cache + b"\n")])
+                 [(b"Proceed?", b"yes\n"), (b"Secret (hidden", cache + b"\n")])
         bindings = root / "bindings.json"
         document = {"schema": "zix-credential-bindings/v1", "credentials": [
             {"reference": "local/test/api/sample/default", "host": "api.example.com", "environment": "ZIX_TEST_ACCESS_TOKEN"},
@@ -181,7 +181,30 @@ def main():
         daemon.terminate()
         daemon.wait(timeout=5)
         start()
-        terminal(["credential", "remove", *ref], [(b"Type yes", b"yes\n")])
+        # A bound provider write accepts --yes through credential run without a TTY.
+        old_digest = digest(path)
+        manifest["schema"] = "zix-extension/v2"
+        manifest["commands"].append({"id":"sample.apply","words":["apply"],"effect":"operator-write",
+            "description":"Synthetic approved write","required_permissions":[],"arguments":[
+                {"name":"plan-file","required":True,"maximum":2048},
+                {"name":"approval-sha256","required":True,"maximum":64},
+                {"name":"journal-directory","required":True,"maximum":2048}]})
+        new_path = root / "sample-v2.json";new_path.write_text(json.dumps(manifest));new_path.chmod(0o600)
+        run(["extensions","replace","--manifest",str(new_path),"--manifest-sha256",digest(new_path),
+             "--executable",probe,"--executable-sha256",digest(probe),"--expected-manifest-sha256",old_digest,
+             "--expected-executable-sha256",digest(probe)])
+        catalog = json.loads(run(["extensions","inspect","sample","--format","json"]).stdout)["entry"]["manifest"]
+        canonical = lambda v: json.dumps(v,sort_keys=True,separators=(",",":")).encode()
+        plan = {"schema":"zix-local-operation/v1","operation":"sample.apply","binding":{
+            "package":"sample-provider","version":"0.1.0","catalog_sha256":hashlib.sha256(canonical(catalog)).hexdigest(),
+            "executable_sha256":digest(probe)},"plan":{"synthetic":True}}
+        plan_path=root/"write-plan.json";plan_path.write_bytes(canonical(plan));plan_path.chmod(0o600)
+        approved=run(["credential","run","--yes",*ref,"--host","api.example.com","--environment","ZIX_TEST_ACCESS_TOKEN",
+             "--manifest-sha256",digest(new_path),"--executable-sha256",digest(probe),"--","sample","apply",
+             "--plan-file",str(plan_path),"--journal-directory",str(root)])
+        assert json.loads(approved.stdout)["result"]["selected_environment"] is True
+        run(["credential", "remove", "-y", *ref])
+        use[use.index(old_digest)] = digest(new_path)
         assert b"credential_not_found" in run(use, False).stderr
         absent = dict(os.environ, DBUS_SESSION_BUS_ADDRESS="unix:path=" + os.environ["XDG_RUNTIME_DIR"] + "/absent")
         assert b"credential_store_unavailable" in run(["credential", "status", *collection], False, absent).stderr

@@ -12,21 +12,9 @@ pub(super) fn require_owner_terminal() -> Result<()> {
     }
     Ok(())
 }
-pub(super) fn confirm(description: &str) -> Result<()> {
-    require_owner_terminal()?;
+pub(super) fn confirm(description: &str, assume_yes: bool) -> Result<()> {
     eprintln!("{description}");
-    eprint!("Type yes to authorize this local operation: ");
-    std::io::stderr()
-        .flush()
-        .map_err(|_| Error("credential_input_unavailable"))?;
-    let mut line = [0; 4];
-    std::io::stdin()
-        .read_exact(&mut line)
-        .map_err(|_| Error("approval_declined"))?;
-    if line != *b"yes\n" {
-        return Err(Error("approval_declined"));
-    }
-    Ok(())
+    crate::confirmation::ask(assume_yes)
 }
 struct Restore(Termios);
 impl Drop for Restore {

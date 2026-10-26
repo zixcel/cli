@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 #[cfg_attr(not(feature = "credential-store"), allow(dead_code))]
 pub(crate) struct Request {
     pub action: String,
+    pub assume_yes: bool,
     pub collection: String,
     pub reference: String,
     pub host: String,
@@ -15,7 +16,17 @@ pub(crate) struct Request {
 }
 
 pub(super) fn parse(args: &[String]) -> Result<Request> {
+    let end = args.iter().position(|a| a == "--").unwrap_or(args.len());
+    let (options, assume_yes) =
+        crate::confirmation::split(args.get(1..end).ok_or(Error("invalid_arguments"))?);
+    let mut normalized = args.first().cloned().into_iter().collect::<Vec<_>>();
+    normalized.extend(options);
+    normalized.extend_from_slice(&args[end..]);
+    let args = normalized.as_slice();
     let action = args.first().ok_or(Error("invalid_arguments"))?.as_str();
+    if assume_yes && !["run", "set", "remove", "unlock", "lock"].contains(&action) {
+        return Err(Error("confirmation_not_supported"));
+    }
     let allowed: &[&str] = match action {
         "status" | "unlock" | "lock" => &["--collection"],
         "inspect" | "remove" => &["--collection", "--reference"],
@@ -58,8 +69,9 @@ pub(super) fn parse(args: &[String]) -> Result<Request> {
         .transpose()?
         .unwrap_or_default();
     let mut get = |key| flags.remove(key).unwrap_or_default();
-    let request = Request {
+    let mut request = Request {
         action: action.into(),
+        assume_yes,
         collection: get("--collection"),
         reference: get("--reference"),
         host: get("--host"),
@@ -73,6 +85,9 @@ pub(super) fn parse(args: &[String]) -> Result<Request> {
             vec![]
         },
     };
+    if action == "run" && assume_yes {
+        request.command.push("--yes".into());
+    }
     if request.collection == "session" || !component(&request.collection, 64) {
         return Err(Error("invalid_credential_collection"));
     }

@@ -21,6 +21,9 @@ pub(super) fn validate(manifest: &Manifest) -> Result<()> {
         {
             return Err(Error("invalid_manifest"));
         }
+        if c.effect == "operator-write" && c.arguments.iter().any(|a| a.name == "yes") {
+            return Err(Error("invalid_manifest"));
+        }
         if c.effect == "operator-write"
             && !["plan-file", "approval-sha256", "journal-directory"]
                 .iter()

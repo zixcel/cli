@@ -51,7 +51,7 @@ zix credential set --collection default \
 ```
 
 This requires a real terminal, shows the reference/host and whether this is a
-replacement, and asks for `yes`. The next prompt hides token input, restores
+replacement, and accepts `y` or `yes`. The next prompt hides token input, restores
 terminal settings on ordinary errors or Ctrl-C, and enforces the input bound
 while reading. No secret argument, input file or plaintext export is accepted.
 Replacement generates a new Crowsi revision; concurrent cross-process changes
@@ -125,7 +125,7 @@ requirements remain in force when running an operator-write command.
 
 ## Rotation, removal and failure
 
-`set` replaces a local credential only after terminal confirmation. It does not
+`set` replaces a local credential after y/yes confirmation (or explicit --yes). It does not
 create or rotate the remote API token. To remove the local entry:
 
 ```sh
@@ -134,7 +134,7 @@ zix credential remove --collection default \
 zix credential lock --collection default
 ```
 
-Removal requires terminal confirmation and does not revoke the remote token.
+Removal requires y/yes confirmation or explicit -y/--yes and does not revoke the remote token.
 Provider timeout/read-back failure can leave a mutation's outcome uncertain;
 inspect through a new invocation before attempting recovery. There are no automatic
 write retries. Unlock prompts and real token registration belong to the owner.
@@ -168,3 +168,8 @@ evidence scopes; one does not prove the others.
 Native manifest timeouts remain explicit and bounded; CLI 0.4.0 admits 50–120000 ms.
 The larger ceiling supports providers that perform separately bounded runtime
 read/write/read processes. Existing providers retain their declared timeouts.
+
+`credential run --yes … -- NAMESPACE …` and a provider-side `--yes` use the
+same invocation-local write confirmation. Explicit confirmation permits unattended
+operation; target hashes, allowed hosts, command credential declarations and OS
+store authentication still apply. `set --yes` retains hidden terminal input.

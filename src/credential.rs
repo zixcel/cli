@@ -18,7 +18,7 @@ zix credential set --collection ALIAS --reference TENANT/SERVICE/PURPOSE/AUDIENC
 zix credential run --collection ALIAS --reference TENANT/SERVICE/PURPOSE/AUDIENCE/ID --host HOST --environment ZIX_NAME --manifest-sha256 HASH --executable-sha256 HASH -- NAMESPACE OPERATION [ARGUMENTS]
 
 Set reads a bounded, hidden terminal prompt; no secret argv, files or raw get command.
-zix credential run --collection ALIAS --bindings PRIVATE_JSON --manifest-sha256 HASH --executable-sha256 HASH -- NAMESPACE OPERATION [ARGUMENTS]\n\nRun selects one registered operation and supplies only its declared credential environment.
+zix credential run --collection ALIAS --bindings PRIVATE_JSON --manifest-sha256 HASH --executable-sha256 HASH -- NAMESPACE OPERATION [ARGUMENTS]\n\nRun selects one registered operation and supplies only its declared credential environment.\nUse -y/--yes for explicit unattended confirmation; provider flags may follow the command.\nSecret enrollment still uses the hidden terminal prompt.
 Requires the Linux credential-store build, an existing persistent OS Secret Service collection,
 and an explicitly authorized local-owner operation. Never creates or auto-unlocks a collection.
 Lock affects the entire selected collection. Local removal does not revoke a provider token.";

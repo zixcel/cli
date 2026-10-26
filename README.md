@@ -94,3 +94,28 @@ Version 0.2.5 adds registration inventory (including disabled extensions) and at
 expected-hash-bound `extensions replace` for upgrades and rollbacks. Provider catalogs
 remain independently owned; no provider-specific command or package lookup is built
 into the dispatcher. See [installation and lifecycle](docs/install.md).
+
+
+## Write confirmation
+
+Operator writes show the operation, plan path and requested change, then accept
+`y` or `yes` at `Proceed? [y/N]`. Empty input and other answers cancel. Use `-y`
+or `--yes` for explicit confirmation without a terminal, including in CI:
+
+```sh
+zix domain dns records apply --profile PROFILE --plan-file PLAN --journal-directory JOURNAL --yes
+zix --yes microsoft exchange apply --tenant TENANT --subject SUBJECT --runtime-profile RUNTIME --plan-file PLAN --journal-directory JOURNAL
+zix credential run --yes --collection COLLECTION --bindings BINDINGS --manifest-sha256 MANIFEST_HASH --executable-sha256 EXECUTABLE_HASH -- microsoft exchange apply --tenant TENANT --subject SUBJECT --runtime-profile RUNTIME --plan-file PLAN --journal-directory JOURNAL
+```
+
+Confirmation is limited to that invocation and is never inherited through an
+environment variable. The dispatcher computes the plan's approval digest when
+omitted. An explicitly supplied `--approval-sha256` remains an exact integrity
+pin. File privacy, operation/catalog/version/executable binding, credentials,
+provider expiry, fresh preflight and replay journals remain enforced. No automatic
+retry follows an unknown write outcome. Existing provider packages retain their
+protocol and do not need a new boolean argument in their manifests.
+
+Credential mutation confirmations also accept `y`/`yes` or explicit `--yes`.
+`credential set --yes` still reads the secret from a hidden terminal prompt;
+confirmation flags never supply a secret or bypass the OS credential store.
