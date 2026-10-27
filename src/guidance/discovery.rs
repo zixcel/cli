@@ -55,7 +55,9 @@ pub(crate) async fn describe(registry: &Registry, args: &[String]) -> Result<()>
         if compact == 1 {
             println!(
                 "{}",
-                super::brief::operation(registry, entry, &manifest, command, &catalog, guide)?
+                super::brief::operation(
+                    registry, entry, &manifest, command, &catalog, guide, &selectors
+                )?
             );
             return Ok(());
         }
