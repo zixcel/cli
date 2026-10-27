@@ -22,8 +22,9 @@ The native runtime needs no Node or sibling source checkout.
 `serve(manifest, handler)` lets an existing owner library reuse the same protocol
 without duplicating its vendor implementation. The handler remains trusted code
 and owns scope/credentials/transport deadlines and observation meaning; the host
-validates known read commands, protocol limits, output bounds and credential
-redaction. This is not a sandbox, a grant issuer, a write executor or a signing
+validates declared operations, protocol limits, integrity bindings, output bounds
+and credential redaction. Operator-write handlers retain their independent
+plan, approval, freshness, one-attempt and journal/readback requirements. This is not a sandbox, a grant issuer, a write executor or a signing
 broker. Never label credential-signing or mutations as reads to fit this protocol.
 
 Write workflows in existing TypeScript/Crowsi packages retain their separate
@@ -42,3 +43,17 @@ before calling any handler. Missing/changed bindings are rejected. This is
 integrity checking, not an identity grant or a substitute for operator approval.
 A v1-only provider must receive a v1 request; a composing v2 adapter validates its
 outer request and explicitly removes the binding before using a retained v1 profile.
+
+## Guided protocol v2
+
+`serve_guided(manifest, catalog, handler)` adds closed keyword diagnostics and
+credential-free `--guidance` discovery. This is provider protocol v2, distinct
+from manifest schema v2 for operator writes. `guidance::catalog` validates
+owner-authored operation/selector requirements and supplies explicit defaults;
+`guidance::decorate` projects the same entries into short command descriptions.
+Selector-specific required arguments stop before handler/credential/HTTP use.
+
+Guidance is descriptive, not an execution grant or a semantic-language compiler.
+The dispatcher resolves related operation IDs against installed manifests and
+keeps missing context, scope/consent/role uncertainty and unknown outcomes explicit.
+See [the shared contract](../../docs/operation-guidance.md).

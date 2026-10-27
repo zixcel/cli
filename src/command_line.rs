@@ -44,6 +44,20 @@ pub async fn run(args: &[String]) -> Result<bool> {
         .first()
         .is_some_and(|a| a == "describe" || a == "prompt")
     {
+        if args.len() >= 2
+            && args[0] == "describe"
+            && args[2..]
+                .iter()
+                .any(|a| a == "--operation" || a == "--guidance")
+        {
+            let filtered = args
+                .iter()
+                .filter(|a| a.as_str() != "--guidance")
+                .cloned()
+                .collect::<Vec<_>>();
+            crate::guidance::describe(&registry, &filtered).await?;
+            return Ok(true);
+        }
         if args[0] == "prompt" && args.len() != 2 {
             return Err(Error("invalid_arguments"));
         }
@@ -68,8 +82,15 @@ pub async fn run(args: &[String]) -> Result<bool> {
         return Ok(true);
     }
     let selected = select(&m, &args[1..])?;
-    let response = execution::dispatch(entry, selected).await?;
-    let success = response.get("error").is_none();
+    let mut response = execution::dispatch(entry, selected).await?;
+    if let Err(error) = crate::guidance::enrich(&registry, entry, &mut response) {
+        response["diagnostic"]["resolution_error"] = serde_json::json!(error.0);
+    }
+    let success = response.get("error").is_none()
+        && response
+            .pointer("/diagnostic/state")
+            .and_then(serde_json::Value::as_str)
+            != Some("NeedsResolution");
     println!("{response}");
     Ok(success)
 }

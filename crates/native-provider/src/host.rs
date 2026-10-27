@@ -16,36 +16,23 @@ impl From<Error> for Failure {
         }
     }
 }
-pub fn validate_request(manifest: &Manifest, request: &Request) -> Result<()> {
-    if request.schema != "zix-provider/v1"
-        || request.id.len() != 32
-        || !request
-            .id
-            .bytes()
-            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
-        || !(50..=manifest.timeout_ms).contains(&request.limits.timeout_ms)
-        || !(1024..=131072).contains(&request.limits.maximum_response_bytes)
-    {
-        return Err(Error("invalid_provider_request"));
-    }
-    let command = manifest
-        .commands
-        .iter()
-        .find(|c| c.id == request.operation)
-        .ok_or(Error("unknown_operation"))?;
-    let mut args = command.words.clone();
-    for (name, value) in &request.arguments {
-        args.extend([format!("--{name}"), value.clone()]);
-    }
-    zix_cli::select(manifest, &args)?;
-    crate::binding::validate(manifest, request)?;
-    Ok(())
-}
+mod request;
+pub use request::validate_request;
 pub fn serve(
     manifest: Manifest,
     handler: impl FnOnce(&Request) -> std::result::Result<Value, Failure>,
 ) -> ExitCode {
-    match run(manifest, handler) {
+    finish(run(manifest, None, handler))
+}
+pub fn serve_guided(
+    manifest: Manifest,
+    catalog: zix_operation_contracts::guidance::Catalog,
+    handler: impl FnOnce(&Request) -> std::result::Result<Value, Failure>,
+) -> ExitCode {
+    finish(run(manifest, Some(catalog), handler))
+}
+fn finish(result: Result<()>) -> ExitCode {
+    match result {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
             eprintln!("{{\"error\":\"{}\"}}", error.0);
@@ -55,9 +42,18 @@ pub fn serve(
 }
 fn run(
     manifest: Manifest,
+    catalog: Option<zix_operation_contracts::guidance::Catalog>,
     handler: impl FnOnce(&Request) -> std::result::Result<Value, Failure>,
 ) -> Result<()> {
     manifest.validate()?;
+    if let Some(catalog) = &catalog {
+        crate::guidance::validate_catalog(&manifest, catalog)?;
+        if manifest.protocol != "zix-provider/v2" {
+            return Err(Error("guidance_protocol_required"));
+        }
+    } else if manifest.protocol != "zix-provider/v1" {
+        return Err(Error("guidance_catalog_missing"));
+    }
     let args = std::env::args().skip(1).collect::<Vec<_>>();
     if args == ["--manifest"] {
         println!(
@@ -66,7 +62,20 @@ fn run(
         );
         return Ok(());
     }
-    if args != ["--zix-provider-v1"] {
+    if args == ["--guidance"] {
+        let catalog = catalog.as_ref().ok_or(Error("guidance_catalog_missing"))?;
+        println!(
+            "{}",
+            serde_json::to_string(catalog).map_err(|_| Error("invalid_guidance"))?
+        );
+        return Ok(());
+    }
+    let flag = if manifest.protocol == "zix-provider/v2" {
+        "--zix-provider-v2"
+    } else {
+        "--zix-provider-v1"
+    };
+    if args != [flag] {
         return Err(Error("invalid_arguments"));
     }
     let bytes = files::bounded(stdin().lock(), 8192)?;
@@ -74,8 +83,21 @@ fn run(
         .map_err(|_| Error("invalid_provider_request"))?;
     validate_request(&manifest, &request)?;
     let mut response =
-        json!({"schema":"zix-provider/v1","id":request.id,"operation":request.operation});
-    match handler(&request) {
+        json!({"schema":manifest.protocol,"id":request.id,"operation":request.operation});
+    let missing_context = catalog
+        .as_ref()
+        .and_then(|c| c.select(&request.operation, &request.arguments))
+        .is_some_and(|g| {
+            g.required_arguments
+                .iter()
+                .any(|k| !request.arguments.contains_key(k))
+        });
+    let outcome = if missing_context {
+        Err(Failure::from(Error("operation_context_missing")))
+    } else {
+        handler(&request)
+    };
+    match outcome {
         Ok(value) => response["result"] = value,
         Err(error) => {
             let code = if !error.code.is_empty()
@@ -94,6 +116,11 @@ fn run(
                 response["http_status"] = json!(status);
             }
         }
+    }
+    if let Some(catalog) = &catalog {
+        response["diagnostic"] =
+            serde_json::to_value(crate::guidance::diagnose(catalog, &request, &response)?)
+                .map_err(|_| Error("invalid_diagnostic"))?;
     }
     let secrets = Zeroizing::new(
         manifest

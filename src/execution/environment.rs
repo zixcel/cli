@@ -10,7 +10,12 @@ pub(super) fn launch(
     manifest: &Manifest,
     command: &Command,
 ) -> Result<(Launch, Vec<String>)> {
-    let mut launch = Launch::new(path).args(["--zix-provider-v1"]);
+    let flag = if manifest.protocol == "zix-provider/v2" {
+        "--zix-provider-v2"
+    } else {
+        "--zix-provider-v1"
+    };
+    let mut launch = Launch::new(path).args([flag]);
     let (runtime, credentials) = command.environment.as_ref().map_or(
         (
             &manifest.runtime_environment,

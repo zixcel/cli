@@ -4,7 +4,12 @@ One local entry point for explicitly installed provider tools. Zix verifies a re
 
 ## Start
 
-Download the Linux x86_64 musl archive from this repository's GitHub Releases and the Google extension from `zixcel/zixcel-google`. Verify their checksums and CI provenance before registering executable code. [Installation and Google IAM example](docs/install.md) explains the two independent packages.
+Download the dispatcher from this repository and selected provider extensions from
+their owner releases. Use the GNU package for OS credential-store integration,
+or the static package when custody is not needed. Verify checksums and CI
+provenance before registration. [Installation](docs/install.md) includes an
+independent provider example; [operation guidance](docs/operation-guidance.md)
+explains Domain, Cloudflare and Microsoft handoffs.
 
 ```sh
 zix list
@@ -45,7 +50,7 @@ require both the reviewed catalog hash and the registered provider manifest hash
 ## Boundaries
 
 - Extensions are trusted native executable code, not a sandbox. Review their origin and requested credential environment before enabling them.
-- V1 manifests declare read operations; opt-in v2 manifests support explicit local operator writes as documented below. Node/TypeScript launchers, Windows/macOS and OAuth login/profile storage are not implemented.
+- V1 manifests declare read operations; opt-in v2 manifests support explicit local operator writes as documented below. Provider authentication and profiles belong to their owners; the dispatcher supplies scoped credential custody. Node/TypeScript launchers and Windows/macOS are not implemented.
 - Google access tokens are externally supplied, short-lived credentials. Zix does not mint a new token or authenticate with an old service-account key. The provider verifies Google resource scope; manifest permissions are descriptive, not authorization.
 - A private per-user registry binds exact manifest/executable hashes. Namespace collisions, symlinks, unsafe ownership/modes, unknown protocol/operations, disabled providers and modified files fail closed.
 - Before execution, verified ELF bytes are copied into a sealed Linux memfd. The selected file cannot be swapped between integrity verification and execution. Crowsi owns process lifetime; input, output, diagnostics and time are bounded. Unselected environment and raw provider diagnostics are not forwarded.
@@ -71,9 +76,9 @@ Apache-2.0. Original dependency licenses and copyright notices accompany native 
 The existing v1 manifest stays read-only. The opt-in v2 manifest may declare
 `operator-write` commands with required plan-file, approval-sha256 and private
 journal-directory arguments. The dispatcher requires a real interactive input
-terminal, checks the plan's operation/package/version/catalog/executable binding,
-and asks the operator to enter the reviewed plan hash before launching code.
-An unattended call fails before launching the provider. Providers must independently
+terminal unless `-y/--yes` is supplied, checks the plan's
+operation/package/version/catalog/executable binding, and asks for `y/yes`
+confirmation. An omitted approval hash is derived from the reviewed plan. Providers must independently
 recheck the binding, current permissions/state, expiry, payload and durable journal.
 
 This is an explicit local operator workflow, not a signed authorization grant or
@@ -119,3 +124,10 @@ protocol and do not need a new boolean argument in their manifests.
 Credential mutation confirmations also accept `y`/`yes` or explicit `--yes`.
 `credential set --yes` still reads the secret from a hidden terminal prompt;
 confirmation flags never supply a secret or bypass the OS credential store.
+
+## Operation meaning and diagnostics
+
+CLI 0.6.0 accepts legacy provider protocol v1 and opt-in guided v2.
+[Operation guidance](docs/operation-guidance.md) defines concise keyword summaries,
+requirements, unresolved evidence and installed-tool handoffs. Provider-owned
+catalogs generate discovery and runtime diagnostics from the same definitions.

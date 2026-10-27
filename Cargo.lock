@@ -2054,7 +2054,7 @@ dependencies = [
 
 [[package]]
 name = "zix-cli"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "crowsi-credential-broker",
  "crowsi-process-adapter",
@@ -2073,7 +2073,7 @@ dependencies = [
 
 [[package]]
 name = "zix-native-provider"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "crowsi-provider-read-http",
  "serde",
@@ -2086,7 +2086,7 @@ dependencies = [
 
 [[package]]
 name = "zix-operation-contracts"
-version = "0.1.0"
+version = "0.1.1"
 dependencies = [
  "serde",
  "serde_json",

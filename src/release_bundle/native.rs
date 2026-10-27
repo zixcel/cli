@@ -77,13 +77,43 @@ pub fn bundle(
         &result.stdout,
     )
     .map_err(|_| "output_unavailable")?;
+    let guidance_sha = if manifest.protocol == "zix-provider/v2" {
+        let result = Command::new(&copied)
+            .arg("--guidance")
+            .env_clear()
+            .output()
+            .map_err(|_| "guidance_failed")?;
+        if !result.status.success() || result.stdout.len() > 65536 {
+            return Err("guidance_failed");
+        }
+        let catalog: zix_operation_contracts::guidance::Catalog =
+            serde_json::from_slice(&result.stdout).map_err(|_| "guidance_failed")?;
+        if !catalog.validate()
+            || catalog.namespace != manifest.namespace
+            || catalog.package != manifest.package
+            || catalog.version != manifest.version
+        {
+            return Err("guidance_identity_mismatch");
+        }
+        fs::write(
+            directory.join(format!("{}.guidance.json", manifest.namespace)),
+            &result.stdout,
+        )
+        .map_err(|_| "output_unavailable")?;
+        Some(files::digest(&result.stdout))
+    } else {
+        None
+    };
     for file in ["LICENSE", "NOTICE"] {
         fs::copy(file, directory.join(file)).map_err(|_| "owner_notice_missing")?;
     }
     licenses::collect(&directory)?;
-    let record = serde_json::json!({"schema":"zix-native-release/v1","package":identity.package,"version":identity.version,
+    let mut record = serde_json::json!({"schema":"zix-native-release/v1","package":identity.package,"version":identity.version,
         "repository":identity.repository,"source":identity.source,"target":target,"binary":filename,
         "namespace":manifest.namespace,"binary_sha256":files::digest(&bytes),"manifest_sha256":files::digest(&result.stdout)});
+    if let Some(sha) = guidance_sha {
+        record["guidance_sha256"] = serde_json::json!(sha);
+    }
     fs::write(
         directory.join("RELEASE.json"),
         serde_json::to_vec_pretty(&record).map_err(|_| "invalid_record")?,

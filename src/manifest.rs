@@ -26,7 +26,7 @@ impl Manifest {
     pub fn validate(&self) -> Result<()> {
         let mut env = HashSet::new();
         if !["zix-extension/v1", "zix-extension/v2"].contains(&self.schema.as_str())
-            || self.protocol != "zix-provider/v1"
+            || !["zix-provider/v1", "zix-provider/v2"].contains(&self.protocol.as_str())
             || !token(&self.namespace)
             || [
                 "api",
