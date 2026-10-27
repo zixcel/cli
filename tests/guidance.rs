@@ -90,3 +90,29 @@ fn legacy_provider_guidance_fails_locally_and_description_without_namespace_neve
     assert!(String::from_utf8_lossy(&o.stderr).contains("guidance_not_supported"));
     assert!(!c.run(&["describe"]).status.success());
 }
+#[test]
+fn diagnostic_inspection_preserves_only_declared_selectors() {
+    let (_c, r) = registry();
+    let mut response = json!({"error":"permission_denied","diagnostic":{
+        "schema":"zix-diagnostic/v1","state":"NeedsResolution","reason":"authorization",
+        "summary":"ACCESS DENIED","requirements_state":"declared_not_verified",
+        "retry":"no_automatic_retry","remote_effect":"not_inferred",
+        "guide":{"operation":"sample.inspect","selectors":{"mode":"echo"},
+            "intent":"inspect_sample","keywords":["READ"],"requirements":[],
+            "next_actions":[],"documentation":[]}}});
+    guidance::enrich(&r, &r.entries[0], &mut response).unwrap();
+    assert_eq!(
+        response["diagnostic"]["inspect_argv"],
+        json!([
+            "zix",
+            "describe",
+            "sample",
+            "--operation",
+            "sample.inspect",
+            "--argument",
+            "mode=echo",
+            "--format",
+            "json"
+        ])
+    );
+}
