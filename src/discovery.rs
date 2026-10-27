@@ -1,4 +1,6 @@
+mod compact;
 use crate::{Result, registry::Registry};
+pub(crate) use compact::run as compact;
 use serde_json::{Value, json};
 pub fn capabilities(registry: &Registry) -> Result<Value> {
     let mut providers = Vec::new();
@@ -10,23 +12,6 @@ pub fn capabilities(registry: &Registry) -> Result<Value> {
     }
     providers.sort_by(|a, b| a.namespace.cmp(&b.namespace));
     Ok(json!({"schema":"zix-capabilities/v1","providers":providers,"authority":"none"}))
-}
-pub fn compact_capabilities(registry: &Registry) -> Result<Value> {
-    let mut providers = Vec::new();
-    for entry in registry.entries.iter().filter(|e| e.enabled) {
-        let m = entry.manifest()?;
-        let operations = m
-            .commands
-            .iter()
-            .map(|c| json!({"id":c.id,"summary":c.description,"effect":c.effect}))
-            .collect::<Vec<_>>();
-        providers.push(json!({"namespace":m.namespace,"version":m.version,"guided":m.protocol=="zix-provider/v2","operations":operations}));
-    }
-    providers.sort_by(|a, b| a["namespace"].as_str().cmp(&b["namespace"].as_str()));
-    Ok(
-        json!({"schema":"zix-capability-index/v1","providers":providers,"authority":"none","remote_requests":false,"credentials_read":false,
-        "next":"describe one operation with --compact; supply its required arguments before execution"}),
-    )
 }
 pub fn prompt(registry: &Registry, namespace: &str) -> Result<String> {
     let entry = registry.entry(namespace)?;

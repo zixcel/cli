@@ -17,6 +17,24 @@ fn compact_index_and_selected_operation_retain_executable_shape_and_context() {
     assert_eq!(v["schema"], "zix-capability-index/v1");
     assert_eq!(v["remote_requests"], false);
     assert!(v["providers"][0].get("credential_environment").is_none());
+    assert!(v["providers"][0].get("operations").is_none());
+    let o = c.run(&[
+        "capabilities",
+        "--namespace",
+        "sample",
+        "--compact",
+        "--format",
+        "json",
+    ]);
+    assert!(o.status.success());
+    let v: Value = serde_json::from_slice(&o.stdout).unwrap();
+    assert_eq!(v["scope"], "operations");
+    assert_eq!(v["providers"][0]["operations"][0]["id"], "sample.inspect");
+    assert!(
+        !c.run(&["capabilities", "--namespace", "missing", "--compact"])
+            .status
+            .success()
+    );
     let o = c.run(&[
         "describe",
         "sample",

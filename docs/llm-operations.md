@@ -5,17 +5,20 @@ string arguments can consume the same interface; model output grants no authorit
 
 ```sh
 zix capabilities --compact --format json
+zix capabilities --namespace microsoft --compact --format json
 zix describe microsoft --operation admin.organization --argument resource=security_defaults --compact --format json
 ```
 
-The index contains names, effects and short descriptions, without argument trees.
+The first index contains provider names, operation counts and effects. Select a
+namespace to obtain only its operation IDs and short descriptions, without argument trees.
 The brief contains one operation, its command words, arguments, selected resource,
 selector choices, missing inputs and typed requirements. It removes duplicated
 catalog descriptions and per-action digests; `source` retains the selected
 registration identity. `inspect_argv` retrieves the detailed view when needed.
 Discovery invokes no provider HTTP endpoint or credential store.
 
-1. Select one operation ID from the compact index; never invent an ID or flag.
+1. Select a provider from the index, then read its compact namespace index. Select
+   one operation ID; never invent an ID or flag.
 2. Read its brief. If `missing_arguments` is nonempty, obtain the named inputs.
    Use `selector_choices` to select a resource, then inspect that exact selection.
 3. Establish credential audience, target and user authorization. Declared rights
