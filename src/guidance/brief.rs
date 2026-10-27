@@ -25,7 +25,14 @@ pub(super) fn operation(
     command: &Command,
     catalog: &Catalog,
     guide: &Guide,
+    arguments: &BTreeMap<String, String>,
 ) -> Result<Value> {
+    let mut selected = guide.clone();
+    selected.selectors = arguments
+        .iter()
+        .filter(|(k, _)| k.as_str() != "approval-sha256")
+        .map(|(k, v)| (k.clone(), v.clone()))
+        .collect();
     let required = command
         .arguments
         .iter()
@@ -69,11 +76,11 @@ pub(super) fn operation(
         json!({"schema":"zix-operation-brief/v1","namespace":manifest.namespace,"version":manifest.version,
         "operation":command.id,"intent":guide.intent,"keywords":guide.keywords,"effect":command.effect,
         "command":argv,"arguments":command.arguments.iter().filter(|a|a.name!="approval-sha256").collect::<Vec<_>>(),
-        "selected_arguments":guide.selectors,"selector_choices":choices,"required_arguments":required,
-        "missing_arguments":required.iter().filter(|k|!guide.selectors.contains_key(*k)).collect::<Vec<_>>(),
+        "selected_arguments":selected.selectors,"selector_choices":choices,"required_arguments":required,
+        "missing_arguments":required.iter().filter(|k|!selected.selectors.contains_key(*k)).collect::<Vec<_>>(),
         "requirements":guide.requirements,"requirements_state":"declared_not_verified","next":next,
         "authority":"none","remote_requests":false,"credentials_read":false,"retry":"no_automatic_retry",
-        "inspect_argv":inspect(&manifest.namespace,guide),
+        "inspect_argv":inspect(&manifest.namespace,&selected),
         "source":{"manifest_sha256":entry.manifest_sha256,"executable_sha256":entry.executable_sha256}}),
     )
 }

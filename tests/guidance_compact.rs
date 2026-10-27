@@ -107,3 +107,31 @@ fn conditional_missing_input_stops_before_provider_and_credential_store() {
         assert_eq!(v["error"], "operation_context_missing");
     }
 }
+
+#[test]
+fn compact_known_inputs_are_not_reported_missing() {
+    let c = guided();
+    let o = c.run(&[
+        "describe",
+        "sample",
+        "--operation",
+        "sample.inspect",
+        "--argument",
+        "mode=needs-context",
+        "--argument",
+        "value=known",
+        "--compact",
+        "--format",
+        "json",
+    ]);
+    assert!(o.status.success());
+    let v: Value = serde_json::from_slice(&o.stdout).unwrap();
+    assert_eq!(v["selected_arguments"]["value"], "known");
+    assert_eq!(v["missing_arguments"], json!([]));
+    assert!(
+        v["inspect_argv"]
+            .as_array()
+            .unwrap()
+            .contains(&json!("value=known"))
+    );
+}
