@@ -5,6 +5,22 @@ protocol and reviewed read-profile hosting belong here. Generic HTTPS/process
 execution belongs to Crowsi. Vendor policy and release acceptance belong to each
 vendor owner; no central release action or credential is introduced.
 
+## Current entrypoints
+
+Use [local setup and updates](setup.md) for the current released dispatcher and
+provider packages, and [operation guidance](operation-guidance.md) or the
+[provider guides](https://zixcel.com/tools) for current capabilities. Query the
+installed interface with `zix capabilities --compact --format json` and inspect
+one selected operation. Installation, provider credentials and operation approval
+remain separate.
+
+## Initial contract projection baseline
+
+The table below records the initial API projection and ownership split. It is
+historical architecture context, not the current extension inventory: later
+Domain, Cloudflare and Microsoft functionality, and the Google, Docker and
+WordPress native packages, are described by their current registered definitions.
+
 | Owner | Specification / existing implementation | Native read scope |
 | --- | --- | --- |
 | zixcel-azure | Official Swagger 2.0 plus explicitly pinned common-type bundle | Subscription get/list |
