@@ -251,6 +251,9 @@ def install_tree(candidate, destination):
         actual = {str(p.relative_to(destination)): digest(p) for p in destination.rglob('*') if p.is_file()}
         expected = {str(p.relative_to(candidate)): digest(p) for p in candidate.rglob('*') if p.is_file()}
         require(actual == expected, 'existing_package_integrity_mismatch')
+        for name in expected:
+            mode = (destination / name).stat().st_mode
+            require(not mode & 0o222 and bool(mode & 0o111) == bool((candidate / name).stat().st_mode & 0o111), 'existing_package_mode_mismatch')
     else:
         shutil.move(candidate, destination)
         freeze(destination)
