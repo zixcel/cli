@@ -57,10 +57,12 @@ their causes are unavailable.
 - `zix-operation-contracts::guidance` owns bounded descriptive types and fixed
   observation classification, not a new semantic language or authorization engine.
 - Providers own finite `Guide` entries: operation, selectors, intent, keywords,
-  typed requirements, related operation IDs and documentation. The same entries
+  typed requirements, selector-specific required arguments, related operation IDs
+  and documentation. The same entries
   drive `--guidance` and runtime diagnostics. Avoid separate hand-maintained copies.
 - The native SDK validates guide-to-command binding before reading credentials.
-  The most specific matching selector wins; ambiguous equal-specificity rules
+  Selector-specific missing arguments stop before the provider handler, credentials
+  or HTTP. The most specific matching selector wins; ambiguous equal-specificity rules
   are rejected. An unobserved property stays unobserved.
 - The dispatcher validates responses and resolves related actions against its
   registered manifests. No PATH search, automatic install, inferred authority,

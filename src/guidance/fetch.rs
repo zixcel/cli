@@ -44,11 +44,15 @@ pub(super) async fn catalog(entry: &Entry) -> Result<Catalog> {
                 .iter()
                 .find(|c| c.id == g.operation)
                 .ok_or(Error("invalid_guidance_operation"))?;
-            if g.selectors.iter().any(|(k, v)| {
-                !c.arguments
-                    .iter()
-                    .any(|a| a.name == *k && v.len() <= a.maximum)
-            }) {
+            if g.required_arguments
+                .iter()
+                .any(|k| !c.arguments.iter().any(|a| a.name == *k))
+                || g.selectors.iter().any(|(k, v)| {
+                    !c.arguments
+                        .iter()
+                        .any(|a| a.name == *k && v.len() <= a.maximum)
+                })
+            {
                 return Err(Error("invalid_guidance_selector"));
             }
         }

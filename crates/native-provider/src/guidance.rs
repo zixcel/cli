@@ -22,6 +22,7 @@ pub fn catalog(manifest: &Manifest, overrides: &[u8]) -> Result<Catalog> {
                     .collect(),
                 next_actions: vec![],
                 documentation: vec![],
+                required_arguments: vec![],
             });
         }
     }
@@ -76,11 +77,16 @@ pub fn validate_catalog(manifest: &Manifest, catalog: &Catalog) -> Result<()> {
             .iter()
             .find(|c| c.id == guide.operation)
             .ok_or(Error("invalid_guidance_operation"))?;
-        if guide.selectors.iter().any(|(k, v)| {
-            !c.arguments
-                .iter()
-                .any(|a| a.name == *k && v.len() <= a.maximum)
-        }) {
+        if guide
+            .required_arguments
+            .iter()
+            .any(|k| !c.arguments.iter().any(|a| a.name == *k))
+            || guide.selectors.iter().any(|(k, v)| {
+                !c.arguments
+                    .iter()
+                    .any(|a| a.name == *k && v.len() <= a.maximum)
+            })
+        {
             return Err(Error("invalid_guidance_selector"));
         }
     }

@@ -84,7 +84,20 @@ fn run(
     validate_request(&manifest, &request)?;
     let mut response =
         json!({"schema":manifest.protocol,"id":request.id,"operation":request.operation});
-    match handler(&request) {
+    let missing_context = catalog
+        .as_ref()
+        .and_then(|c| c.select(&request.operation, &request.arguments))
+        .is_some_and(|g| {
+            g.required_arguments
+                .iter()
+                .any(|k| !request.arguments.contains_key(k))
+        });
+    let outcome = if missing_context {
+        Err(Failure::from(Error("operation_context_missing")))
+    } else {
+        handler(&request)
+    };
+    match outcome {
         Ok(value) => response["result"] = value,
         Err(error) => {
             let code = if !error.code.is_empty()

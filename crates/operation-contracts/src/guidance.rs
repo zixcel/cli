@@ -25,6 +25,8 @@ pub struct Guide {
     pub requirements: Vec<Requirement>,
     pub next_actions: Vec<Action>,
     pub documentation: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub required_arguments: Vec<String>,
 }
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(deny_unknown_fields)]

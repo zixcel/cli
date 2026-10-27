@@ -17,6 +17,7 @@ pub(super) fn emit(entry: &Entry, response: &Value) -> Result<()> {
             .collect(),
         next_actions: vec![],
         documentation: vec![],
+        required_arguments: vec![],
     };
     let d = Diagnostic::observe(guide, response);
     if d.state == Resolution::NeedsResolution {

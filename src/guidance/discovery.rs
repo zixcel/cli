@@ -48,7 +48,8 @@ pub(crate) async fn describe(registry: &Registry, args: &[String]) -> Result<()>
             .iter()
             .filter(|a| a.required && a.name != "approval-sha256")
             .map(|a| &a.name)
-            .collect::<Vec<_>>();
+            .chain(guide.required_arguments.iter())
+            .collect::<std::collections::BTreeSet<_>>();
         println!(
             "{}",
             json!({"schema":"zix-operation-guidance/v1","namespace":manifest.namespace,"version":manifest.version,"guide":guide,"effect":command.effect,"required_arguments":required,"resolved_actions":actions(registry,guide,None)?,"authority":"none","remote_requests":false,"credentials_read":false,"manifest_sha256":entry.manifest_sha256,"executable_sha256":entry.executable_sha256})

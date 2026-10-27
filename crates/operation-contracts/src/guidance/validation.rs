@@ -29,6 +29,8 @@ impl Action {
 impl Guide {
     pub fn validate(&self) -> bool {
         identifier(&self.operation)
+            && self.required_arguments.len() <= 16
+            && self.required_arguments.iter().all(|s| identifier(s))
             && identifier(&self.intent)
             && self.selectors.len() <= 4
             && self
