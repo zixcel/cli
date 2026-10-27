@@ -7,7 +7,7 @@ async fn main() -> ExitCode {
         Ok(true) => ExitCode::SUCCESS,
         Ok(false) => ExitCode::from(2),
         Err(error) => {
-            eprintln!("{{\"error\":\"{}\"}}", error.0);
+            eprintln!("{}", zix_cli::guidance::local_failure(error.0));
             ExitCode::from(2)
         }
     }

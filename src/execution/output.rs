@@ -1,6 +1,6 @@
 use crate::{Error, Result};
 use tokio::io::{AsyncRead, AsyncReadExt};
-pub(super) async fn bounded(reader: impl AsyncRead + Unpin, maximum: usize) -> Result<Vec<u8>> {
+pub(crate) async fn bounded(reader: impl AsyncRead + Unpin, maximum: usize) -> Result<Vec<u8>> {
     let mut bytes = Vec::new();
     reader
         .take(maximum as u64 + 1)

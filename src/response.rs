@@ -1,10 +1,20 @@
 use crate::{Error, Result};
 use serde_json::Value;
+#[cfg(test)]
 pub(crate) fn response(
     bytes: &[u8],
     id: &str,
     operation: &str,
     secrets: &[String],
+) -> Result<Value> {
+    response_with_protocol(bytes, id, operation, secrets, "zix-provider/v1")
+}
+pub(crate) fn response_with_protocol(
+    bytes: &[u8],
+    id: &str,
+    operation: &str,
+    secrets: &[String],
+    protocol: &str,
 ) -> Result<Value> {
     let text = std::str::from_utf8(bytes).map_err(|_| Error("protocol_rejected"))?;
     if secrets.iter().any(|s| text.contains(s)) {
@@ -23,13 +33,30 @@ pub(crate) fn response(
             "result",
             "error",
             "http_status",
+            "diagnostic",
         ]
         .contains(&k.as_str())
-    }) || value["schema"] != "zix-provider/v1"
+    }) || value["schema"] != protocol
         || value["id"] != id
         || value["operation"] != operation
         || object.contains_key("result") == object.contains_key("error")
     {
+        return Err(Error("protocol_rejected"));
+    }
+    if protocol == "zix-provider/v2" {
+        let diagnostic: zix_operation_contracts::guidance::Diagnostic =
+            serde_json::from_value(value["diagnostic"].clone())
+                .map_err(|_| Error("invalid_diagnostic"))?;
+        if !diagnostic.validate()
+            || diagnostic.guide.operation != operation
+            || (object.contains_key("error")
+                && diagnostic.state == zix_operation_contracts::guidance::Resolution::Observed)
+            || (value.pointer("/result/state").and_then(Value::as_str) == Some("outcome_unknown")
+                && diagnostic.reason != zix_operation_contracts::guidance::Trigger::OutcomeUnknown)
+        {
+            return Err(Error("invalid_diagnostic"));
+        }
+    } else if object.contains_key("diagnostic") {
         return Err(Error("protocol_rejected"));
     }
     if let Some(status) = object.get("http_status")

@@ -35,6 +35,9 @@ pub fn prompt(registry: &Registry, namespace: &str) -> Result<String> {
         }
         result.push('\n');
     }
+    if m.protocol == "zix-provider/v2" {
+        result.push_str(&format!("\nMEANING -> REQUIREMENTS -> EVIDENCE -> NEXT. Meaning grants no authority.\nInspect an operation before a remote call: zix describe {} --operation OPERATION_ID [--argument NAME=VALUE] --format json\nFor missing context or denied access, follow diagnostic.resolved_actions; do not guess permissions or replay unknown writes.\n",m.namespace));
+    }
     Ok(result)
 }
 pub fn help(registry: &Registry) -> Result<String> {

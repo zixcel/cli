@@ -1,14 +1,18 @@
 //! Test-only executable. Release packaging selects --bin zix and excludes this probe.
 use serde_json::{Value, json};
+mod guidance;
 use std::{
     io::{self, Read, Write},
     time::Duration,
 };
 fn main() {
-    assert_eq!(
-        std::env::args().skip(1).collect::<Vec<_>>(),
-        ["--zix-provider-v1"]
-    );
+    let args = std::env::args().skip(1).collect::<Vec<_>>();
+    if args == ["--guidance"] {
+        assert!(std::env::var_os("ZIX_TEST_ACCESS_TOKEN").is_none());
+        println!("{}", guidance::catalog());
+        return;
+    }
+    assert!(args == ["--zix-provider-v1"] || args == ["--zix-provider-v2"]);
     let mut input = String::new();
     io::stdin().read_to_string(&mut input).unwrap();
     let request: Value = serde_json::from_str(&input).unwrap();
@@ -75,7 +79,33 @@ fn main() {
     if mode == "both" {
         result = json!({"both":std::env::var_os("ZIX_TEST_ACCESS_TOKEN").is_some() && std::env::var_os("ZIX_TEST_SECOND_TOKEN").is_some()});
     }
-    let mut response = json!({"schema":"zix-provider/v1","id":request["id"],"operation":request["operation"],"result":result});
+    let mut response = json!({"schema":request["schema"],"id":request["id"],"operation":request["operation"],"result":result});
+    if request["schema"] == "zix-provider/v2" {
+        response["diagnostic"] = guidance::diagnostic(mode);
+        match mode {
+            "v2-denied" => {
+                response.as_object_mut().unwrap().remove("result");
+                response["error"] = json!("permission_denied");
+                response["http_status"] = json!(403);
+            }
+            "v2-incomplete" => {
+                response["result"] = json!({"observation":{"complete":false,"data":[]}})
+            }
+            "v2-unknown" => {
+                response["result"] = json!({"state":"outcome_unknown","write_attempted":true})
+            }
+            "v2-invalid" => response["diagnostic"]["unexpected"] = json!(true),
+            _ => {}
+        }
+        if let Some(path) = request["arguments"]["value"].as_str() {
+            let mut f = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(path)
+                .unwrap();
+            writeln!(f, "one_provider_invocation").unwrap();
+        }
+    }
     if mode == "wrong-id" {
         response["id"] = json!("wrong");
     }

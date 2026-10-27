@@ -71,9 +71,9 @@ Apache-2.0. Original dependency licenses and copyright notices accompany native 
 The existing v1 manifest stays read-only. The opt-in v2 manifest may declare
 `operator-write` commands with required plan-file, approval-sha256 and private
 journal-directory arguments. The dispatcher requires a real interactive input
-terminal, checks the plan's operation/package/version/catalog/executable binding,
-and asks the operator to enter the reviewed plan hash before launching code.
-An unattended call fails before launching the provider. Providers must independently
+terminal unless `-y/--yes` is supplied, checks the plan's
+operation/package/version/catalog/executable binding, and asks for `y/yes`
+confirmation. An omitted approval hash is derived from the reviewed plan. Providers must independently
 recheck the binding, current permissions/state, expiry, payload and durable journal.
 
 This is an explicit local operator workflow, not a signed authorization grant or
@@ -119,3 +119,10 @@ protocol and do not need a new boolean argument in their manifests.
 Credential mutation confirmations also accept `y`/`yes` or explicit `--yes`.
 `credential set --yes` still reads the secret from a hidden terminal prompt;
 confirmation flags never supply a secret or bypass the OS credential store.
+
+## Operation meaning and diagnostics
+
+CLI 0.6.0 accepts legacy provider protocol v1 and opt-in guided v2.
+[Operation guidance](docs/operation-guidance.md) defines concise keyword summaries,
+requirements, unresolved evidence and installed-tool handoffs. Provider-owned
+catalogs generate discovery and runtime diagnostics from the same definitions.

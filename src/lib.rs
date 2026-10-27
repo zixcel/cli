@@ -12,6 +12,7 @@ pub mod execution;
 mod extension_inventory;
 mod extensions;
 pub mod files;
+pub mod guidance;
 pub mod install;
 pub mod manifest;
 mod operator;

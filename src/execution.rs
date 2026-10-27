@@ -4,7 +4,7 @@ use serde_json::{Value, json};
 use std::time::Duration;
 use tokio::io::AsyncWriteExt;
 mod environment;
-mod output;
+pub(crate) mod output;
 use output::bounded;
 pub async fn dispatch(entry: &Entry, selected: Selected<'_>) -> Result<Value> {
     dispatch_inner(entry, selected, None).await
@@ -37,7 +37,7 @@ async fn dispatch_inner(
         .as_nanos();
     let id =
         crate::files::digest(format!("{}:{tick}", std::process::id()).as_bytes())[..32].to_owned();
-    let mut request = json!({"schema":"zix-provider/v1","id":id,"operation":selected.command.id,"arguments":selected.arguments,
+    let mut request = json!({"schema":m.protocol,"id":id,"operation":selected.command.id,"arguments":selected.arguments,
         "limits":{"timeout_ms":m.timeout_ms,"maximum_response_bytes":131072}});
     if m.schema == "zix-extension/v2" {
         request["binding"] =
@@ -83,7 +83,26 @@ async fn dispatch_inner(
         {
             return Err(Error("provider_failed"));
         }
-        crate::response::response(&output, &id, &selected.command.id, &secrets)
+        let value = crate::response::response_with_protocol(
+            &output,
+            &id,
+            &selected.command.id,
+            &secrets,
+            &m.protocol,
+        )?;
+        if m.protocol == "zix-provider/v2" {
+            let d: zix_operation_contracts::guidance::Diagnostic =
+                serde_json::from_value(value["diagnostic"].clone())
+                    .map_err(|_| Error("invalid_diagnostic"))?;
+            if d.guide
+                .selectors
+                .iter()
+                .any(|(k, v)| selected.arguments.get(k) != Some(v))
+            {
+                return Err(Error("diagnostic_selector_mismatch"));
+            }
+        }
+        Ok(value)
     };
     let result = tokio::select! {
         value=tokio::time::timeout(Duration::from_millis(m.timeout_ms),work)=>value.map_err(|_|Error("provider_timeout")).and_then(|r|r),
@@ -101,8 +120,8 @@ async fn dispatch_inner(
         && selected.command.effect == "operator-write"
     {
         eprintln!(
-            "{{\"cause\":\"{}\",\"reconciliation\":\"provider_readback_required\"}}",
-            cause.0
+            "{}",
+            json!({"cause":cause.0,"namespace":m.namespace,"operation":selected.command.id,"reconciliation":"provider_readback_required","retry":"no_automatic_retry"})
         );
         return Err(Error("operator_write_outcome_unknown"));
     }

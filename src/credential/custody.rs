@@ -39,8 +39,15 @@ pub(super) async fn run(request: Request) -> Result<bool> {
         let manifest = entry.manifest()?;
         let selected = crate::select(&manifest, &request.command[1..])?;
         super::validate_target(&request, entry, &selected)?;
-        let response = crate::execution::dispatch_credential(entry, selected, &request).await?;
-        let success = response.get("error").is_none();
+        let mut response = crate::execution::dispatch_credential(entry, selected, &request).await?;
+        if let Err(error) = crate::guidance::enrich(&registry, entry, &mut response) {
+            response["diagnostic"]["resolution_error"] = json!(error.0);
+        }
+        let success = response.get("error").is_none()
+            && response
+                .pointer("/diagnostic/state")
+                .and_then(serde_json::Value::as_str)
+                != Some("NeedsResolution");
         println!("{response}");
         return Ok(success);
     }
