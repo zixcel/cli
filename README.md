@@ -50,7 +50,7 @@ require both the reviewed catalog hash and the registered provider manifest hash
 ## Boundaries
 
 - Extensions are trusted native executable code, not a sandbox. Review their origin and requested credential environment before enabling them.
-- V1 manifests declare read operations; opt-in v2 manifests support explicit local operator writes as documented below. Node/TypeScript launchers, Windows/macOS and OAuth login/profile storage are not implemented.
+- V1 manifests declare read operations; opt-in v2 manifests support explicit local operator writes as documented below. Provider authentication and profiles belong to their owners; the dispatcher supplies scoped credential custody. Node/TypeScript launchers and Windows/macOS are not implemented.
 - Google access tokens are externally supplied, short-lived credentials. Zix does not mint a new token or authenticate with an old service-account key. The provider verifies Google resource scope; manifest permissions are descriptive, not authorization.
 - A private per-user registry binds exact manifest/executable hashes. Namespace collisions, symlinks, unsafe ownership/modes, unknown protocol/operations, disabled providers and modified files fail closed.
 - Before execution, verified ELF bytes are copied into a sealed Linux memfd. The selected file cannot be swapped between integrity verification and execution. Crowsi owns process lifetime; input, output, diagnostics and time are bounded. Unselected environment and raw provider diagnostics are not forwarded.
