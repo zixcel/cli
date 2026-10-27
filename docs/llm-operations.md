@@ -48,11 +48,11 @@ zix capabilities --compact --format json | python3 docs/llm_view.py
 zix capabilities --namespace microsoft --compact --format json | python3 docs/llm_view.py
 ```
 
-Give the model the returned `text` and a JSON choice schema constrained to `choices`. Keep task authorization, effects, target identifiers, hashes and full requirements outside the model's selection step. `select(view, answer, allowed_choices)` checks the registered ID against an allowlist supplied by the caller's authorized workflow. It never executes a command. An allowlist is not inferred from model output.
+Give the model the returned `text` and constrain decoding to one literal ID from `choices`. For very small models, return that ID directly and let the caller construct the JSON envelope with `select_id(view, text, allowed_choices)`. Native Zix transport remains JSON; the model need not generate its framing. Keep task authorization, effects, target identifiers, hashes and full requirements outside the model's selection step. `select(view, answer, allowed_choices)` checks the registered ID against an allowlist supplied by the caller's authorized workflow. It never executes a command. An allowlist is not inferred from model output.
 
 After selection, describe that operation, supply known inputs and check the returned requirements before a request. `gate(response)` blocks missing inputs, denied access, incomplete observations and unknown writes independently of the model. An `inspect_only` view grants no execution authority. Never use a model's choice to bypass a blocked gate or manufacture missing context. The execution adapter must use registered command words, validated argument names and an argument vector with `shell=False`; credentials remain in Zix/Crowsi.
 
-Use a short system instruction such as “Match the final request to one listed choice. Use meaning and keywords. Return JSON with choice.” The following request layout avoids repeated catalogs:
+Use a short system instruction such as “Match the final request to one listed choice. Use meaning and keywords. Return only the matching ID.” The following request layout avoids repeated catalogs:
 
 ```text
 CHOICES AND MEANINGS:
