@@ -33,6 +33,15 @@ fn unknown_mutations_and_nested_partial_observations_never_become_observed() {
     .unwrap();
     assert_eq!(d.reason, Trigger::OutcomeUnknown);
     assert_eq!(d.remote_effect, "unknown");
+    for response in [
+        json!({"result":{"state":"verification_pending"}}),
+        json!({"error":"unknown_result"}),
+    ] {
+        assert_eq!(
+            guidance::diagnose(&c, &r, &response).unwrap().reason,
+            Trigger::OutcomeUnknown
+        );
+    }
     let d = guidance::diagnose(
         &c,
         &r,
@@ -102,8 +111,26 @@ fn provider_messages_shell_text_unknown_fields_and_unbounded_metadata_are_reject
     )
     .unwrap();
     assert_eq!(d.reason, Trigger::Context);
-    let pretty = format!("{}[]", " ".repeat(68000));
+    let source = serde_json::to_string(&catalog().entries).unwrap();
+    let pretty = format!("{}{source}", " ".repeat(68000));
     assert!(guidance::catalog(support::provider().manifest(), pretty.as_bytes()).is_ok());
     let oversized = format!("{}[]", " ".repeat(131072));
     assert!(guidance::catalog(support::provider().manifest(), oversized.as_bytes()).is_err());
+}
+#[test]
+fn every_operation_requires_an_owned_base_definition_and_common_failure_codes_agree() {
+    assert_eq!(
+        guidance::catalog(support::provider().manifest(), b"[]").unwrap_err(),
+        Error("invalid_guidance")
+    );
+    for (code, reason) in [
+        ("auth_required", Trigger::Authentication),
+        ("forbidden", Trigger::Authorization),
+        ("unknown_outcome", Trigger::OutcomeUnknown),
+    ] {
+        let d =
+            guidance::diagnose(&catalog(), &support::request(), &json!({"error":code})).unwrap();
+        assert_eq!(d.reason, reason);
+        assert_eq!(d.state, Resolution::NeedsResolution);
+    }
 }

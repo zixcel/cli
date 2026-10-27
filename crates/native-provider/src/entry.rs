@@ -51,3 +51,24 @@ pub fn entry(routes: &[u8], policy: &[u8], version: &str) -> ExitCode {
         }
     }
 }
+
+pub fn entry_guided(routes: &[u8], policy: &[u8], version: &str, guidance: &[u8]) -> ExitCode {
+    let result = (|| {
+        let provider = Provider::load(routes, policy, version)?;
+        let (manifest, catalog) = crate::guidance::from_provider(&provider, guidance)?;
+        Ok::<_, Error>((provider, manifest, catalog))
+    })();
+    match result {
+        Ok((provider, manifest, catalog)) => crate::serve_guided(manifest, catalog, |request| {
+            // The original adapter is a read-only API-policy boundary, not an operator host.
+            let mut legacy = request.clone();
+            legacy.schema = provider.manifest().protocol.clone();
+            legacy.binding = None;
+            execute(&provider, &legacy)
+        }),
+        Err(error) => {
+            eprintln!("{{\"error\":\"{}\"}}", error.0);
+            ExitCode::from(2)
+        }
+    }
+}

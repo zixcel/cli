@@ -29,6 +29,9 @@ async fn dispatch_inner(
     if !m.commands.contains(selected.command) {
         return Err(Error("operation_binding_mismatch"));
     }
+    if let Some(response) = crate::guidance::preflight(entry, &selected).await? {
+        return Ok(response);
+    }
     crate::operator::authorize(&m, &entry.executable_sha256, &mut selected)?;
     let snapshot = sealed::snapshot(entry)?;
     let tick = std::time::SystemTime::now()

@@ -131,3 +131,7 @@ CLI 0.6.0 accepts legacy provider protocol v1 and opt-in guided v2.
 [Operation guidance](docs/operation-guidance.md) defines concise keyword summaries,
 requirements, unresolved evidence and installed-tool handoffs. Provider-owned
 catalogs generate discovery and runtime diagnostics from the same definitions.
+
+For small-context agents, start with `zix capabilities --compact --format json`,
+then inspect one operation using `zix describe NAMESPACE --operation ID --compact
+--format json`. See [the LLM workflow](docs/llm-operations.md).

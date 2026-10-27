@@ -5,11 +5,14 @@ use crate::{
 };
 use serde_json::{Value, json};
 use zix_operation_contracts::guidance::{Action, Diagnostic, Guide, Trigger};
+mod brief;
 mod builtin;
 mod discovery;
 mod fetch;
 mod legacy;
+mod preflight;
 pub(crate) use discovery::describe;
+pub(crate) use preflight::context as preflight;
 pub fn resolve(registry: &Registry, action: &Action) -> Result<Value> {
     if let Some(value) = builtin::resolve(action) {
         return Ok(value);
@@ -80,18 +83,8 @@ pub fn enrich(registry: &Registry, entry: &Entry, response: &mut Value) -> Resul
     response["diagnostic"]["resolved_actions"] =
         json!(actions(registry, &d.guide, Some(d.reason))?);
     response["diagnostic"]["provenance"] = json!({"manifest_sha256":entry.manifest_sha256,"executable_sha256":entry.executable_sha256,"authority":"none"});
-    let mut inspect = vec![
-        "zix".into(),
-        "describe".into(),
-        entry.manifest()?.namespace,
-        "--operation".into(),
-        d.guide.operation,
-    ];
-    for (name, value) in d.guide.selectors {
-        inspect.extend(["--argument".into(), format!("{name}={value}")]);
-    }
-    inspect.extend(["--format".into(), "json".into()]);
-    response["diagnostic"]["inspect_argv"] = json!(inspect);
+    response["diagnostic"]["inspect_argv"] =
+        json!(brief::inspect(&entry.manifest()?.namespace, &d.guide));
     Ok(())
 }
 pub fn local_failure(code: &str) -> Value {
