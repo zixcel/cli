@@ -84,7 +84,7 @@ impl Catalog {
                 }
             }
         }
-        serde_json::to_vec(self).is_ok_and(|v| v.len() <= 65536)
+        serde_json::to_vec(self).is_ok_and(|v| v.len() < 65536)
     }
 }
 impl Diagnostic {

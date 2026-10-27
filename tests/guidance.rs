@@ -61,6 +61,21 @@ fn stale_arguments_and_unknown_write_failures_do_not_become_retry_instructions()
     assert_eq!(d["diagnostic"]["retry"], "no_automatic_retry");
 }
 #[test]
+fn credential_help_resolves_as_a_builtin_without_secret_or_remote_access() {
+    let mut a = action();
+    a.namespace = "credential".into();
+    a.operation = "help".into();
+    let v = guidance::resolve(&Registry::default(), &a).unwrap();
+    assert_eq!(v["argv"], json!(["zix", "credential", "--help"]));
+    assert_eq!(v["credentials_read"], false);
+    assert_eq!(v["remote_requests"], false);
+    a.operation = "set".into();
+    assert_eq!(
+        guidance::resolve(&Registry::default(), &a).unwrap()["availability"],
+        "unsupported_builtin"
+    );
+}
+#[test]
 fn legacy_provider_guidance_fails_locally_and_description_without_namespace_never_panics() {
     let (c, _) = registry();
     let o = c.run(&[

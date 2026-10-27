@@ -2,7 +2,8 @@
 use crate::{Error, Manifest, Result};
 use zix_operation_contracts::guidance::{Catalog, Guide, Requirement, RequirementKind};
 pub fn catalog(manifest: &Manifest, overrides: &[u8]) -> Result<Catalog> {
-    let value = zix_cli::api_spec::json::parse(overrides, 65536)?;
+    // Pretty owner source may exceed its compact wire representation.
+    let value = zix_cli::api_spec::json::parse(overrides, 131072)?;
     let mut entries: Vec<Guide> =
         serde_json::from_value(value).map_err(|_| Error("invalid_guidance"))?;
     for command in &manifest.commands {

@@ -5,11 +5,15 @@ use crate::{
 };
 use serde_json::{Value, json};
 use zix_operation_contracts::guidance::{Action, Diagnostic, Guide, Trigger};
+mod builtin;
 mod discovery;
 mod fetch;
 mod legacy;
 pub(crate) use discovery::describe;
 pub fn resolve(registry: &Registry, action: &Action) -> Result<Value> {
+    if let Some(value) = builtin::resolve(action) {
+        return Ok(value);
+    }
     let entry = match registry.registered(&action.namespace) {
         Ok(v) => v,
         Err(Error("not_installed")) => {

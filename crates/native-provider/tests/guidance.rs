@@ -102,4 +102,8 @@ fn provider_messages_shell_text_unknown_fields_and_unbounded_metadata_are_reject
     )
     .unwrap();
     assert_eq!(d.reason, Trigger::Context);
+    let pretty = format!("{}[]", " ".repeat(68000));
+    assert!(guidance::catalog(support::provider().manifest(), pretty.as_bytes()).is_ok());
+    let oversized = format!("{}[]", " ".repeat(131072));
+    assert!(guidance::catalog(support::provider().manifest(), oversized.as_bytes()).is_err());
 }
