@@ -80,15 +80,18 @@ pub fn enrich(registry: &Registry, entry: &Entry, response: &mut Value) -> Resul
     response["diagnostic"]["resolved_actions"] =
         json!(actions(registry, &d.guide, Some(d.reason))?);
     response["diagnostic"]["provenance"] = json!({"manifest_sha256":entry.manifest_sha256,"executable_sha256":entry.executable_sha256,"authority":"none"});
-    response["diagnostic"]["inspect_argv"] = json!([
-        "zix",
-        "describe",
+    let mut inspect = vec![
+        "zix".into(),
+        "describe".into(),
         entry.manifest()?.namespace,
-        "--operation",
+        "--operation".into(),
         d.guide.operation,
-        "--format",
-        "json"
-    ]);
+    ];
+    for (name, value) in d.guide.selectors {
+        inspect.extend(["--argument".into(), format!("{name}={value}")]);
+    }
+    inspect.extend(["--format".into(), "json".into()]);
+    response["diagnostic"]["inspect_argv"] = json!(inspect);
     Ok(())
 }
 pub fn local_failure(code: &str) -> Value {
