@@ -70,6 +70,8 @@ pub struct Action {
     #[serde(default)]
     pub arguments: BTreeMap<String, String>,
     pub on: Vec<Trigger>,
+    #[serde(default, skip_serializing_if = "BTreeMap::is_empty")]
+    pub requires_context: BTreeMap<String, String>,
 }
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]

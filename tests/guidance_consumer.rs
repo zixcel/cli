@@ -30,7 +30,10 @@ fn llm_discovery_is_credential_free_and_does_not_invoke_the_operation() {
     assert_eq!(v["remote_requests"], false);
     assert_eq!(v["credentials_read"], false);
     assert_eq!(v["guide"]["intent"], "inspect_sample");
-    assert_eq!(v["resolved_actions"][0]["execution_authorized"], false);
+    assert_eq!(
+        v["resolved_actions"][0]["authorization_state"],
+        "not_inferred"
+    );
     assert!(
         !c.run(&[
             "describe",
@@ -67,8 +70,8 @@ fn denied_partial_and_unknown_results_preserve_evidence_and_never_retry() {
         assert_eq!(v["diagnostic"]["state"], "NeedsResolution");
         assert_eq!(v["diagnostic"]["retry"], "no_automatic_retry");
         assert_eq!(
-            v["diagnostic"]["resolved_actions"][0]["execution_authorized"],
-            false
+            v["diagnostic"]["resolved_actions"][0]["authorization_state"],
+            "not_inferred"
         );
     }
     assert_eq!(std::fs::read_to_string(count).unwrap().lines().count(), 3);

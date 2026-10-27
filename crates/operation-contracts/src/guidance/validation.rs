@@ -19,6 +19,11 @@ impl Action {
                 .all(|(k, v)| identifier(k) && valid(v, 256))
             && !self.on.is_empty()
             && self.on.len() <= 8
+            && self.requires_context.len() <= 4
+            && self
+                .requires_context
+                .iter()
+                .all(|(k, v)| identifier(k) && valid(v, 128))
     }
 }
 impl Guide {

@@ -19,7 +19,7 @@ fn actions_resolve_only_registered_commands_and_expose_missing_context_without_e
     assert_eq!(v["availability"], "installed");
     assert_eq!(v["missing_arguments"], json!(["mode"]));
     assert_eq!(v["runnable"], false);
-    assert_eq!(v["execution_authorized"], false);
+    assert_eq!(v["authorization_state"], "not_inferred");
     a.arguments.insert("mode".into(), "echo".into());
     let v = guidance::resolve(&r, &a).unwrap();
     assert_eq!(
@@ -27,6 +27,12 @@ fn actions_resolve_only_registered_commands_and_expose_missing_context_without_e
         json!(["zix", "sample", "inspect", "--mode", "echo"])
     );
     assert_eq!(v["runnable"], true);
+    a.requires_context
+        .insert("authoritative_dns_provider".into(), "cloudflare".into());
+    let v = guidance::resolve(&r, &a).unwrap();
+    assert_eq!(v["runnable"], false);
+    assert_eq!(v["context_state"], "unverified");
+    a.requires_context.clear();
     r.entries[0].enabled = false;
     assert_eq!(guidance::resolve(&r, &a).unwrap()["runnable"], false);
     a.namespace = "missing".into();

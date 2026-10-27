@@ -16,9 +16,13 @@ definition adoption or make its compiler a CLI prerequisite.
 4. Inspect both the result and diagnostic. `Observed` describes an observation,
    not completion of the user's whole goal. `NeedsResolution` requires a decision.
 5. Read `resolved_actions`: installed/disabled/missing operation, effect, argv,
-   missing arguments and exact package hashes. `runnable` means argument shape
-   only; it never means credentials, live permission, freshness or approval exist.
-6. Follow a relevant authorized step once, then verify its result. Do not repeat
+   missing arguments, required context and exact package hashes. `runnable`
+   requires the declared argument shape and no unresolved context condition;
+   it never proves credentials, live permission, freshness or approval.
+   `authorization_state=not_inferred` concerns this metadata only: reuse existing
+   user authorization for the same scope instead of asking for it again.
+6. Follow a relevant authorized step once, then verify its result. Use `required_context` to establish provider/authority applicability before a
+   cross-tool handoff. Do not repeat
    an unchanged denied request or request broader permissions speculatively.
 
 `zix describe NAMESPACE --guidance --format json` returns the full operation

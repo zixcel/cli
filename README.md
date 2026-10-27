@@ -4,7 +4,12 @@ One local entry point for explicitly installed provider tools. Zix verifies a re
 
 ## Start
 
-Download the Linux x86_64 musl archive from this repository's GitHub Releases and the Google extension from `zixcel/zixcel-google`. Verify their checksums and CI provenance before registering executable code. [Installation and Google IAM example](docs/install.md) explains the two independent packages.
+Download the dispatcher from this repository and selected provider extensions from
+their owner releases. Use the GNU package for OS credential-store integration,
+or the static package when custody is not needed. Verify checksums and CI
+provenance before registration. [Installation](docs/install.md) includes an
+independent provider example; [operation guidance](docs/operation-guidance.md)
+explains Domain, Cloudflare and Microsoft handoffs.
 
 ```sh
 zix list

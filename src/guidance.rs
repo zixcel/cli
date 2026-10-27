@@ -48,8 +48,14 @@ pub fn resolve(registry: &Registry, action: &Action) -> Result<Value> {
     for (k, v) in &action.arguments {
         argv.extend([format!("--{k}"), v.clone()]);
     }
+    let credentials = command
+        .environment
+        .as_ref()
+        .map_or(&manifest.credential_environment, |e| {
+            &e.credential_environment
+        });
     Ok(
-        json!({"purpose":action.purpose,"namespace":manifest.namespace,"operation":command.id,"availability":if entry.enabled {"installed"} else {"disabled"},"effect":command.effect,"argv":argv,"missing_arguments":missing,"runnable":entry.enabled && missing.is_empty(),"execution_authorized":false,"manifest_sha256":entry.manifest_sha256,"executable_sha256":entry.executable_sha256}),
+        json!({"credential_environment":credentials,"integrity":"checked_on_execution","purpose":action.purpose,"namespace":manifest.namespace,"operation":command.id,"availability":if entry.enabled {"installed"} else {"disabled"},"effect":command.effect,"argv":argv,"missing_arguments":missing,"required_context":action.requires_context,"context_state":if action.requires_context.is_empty(){"not_required"}else{"unverified"},"runnable":entry.enabled && missing.is_empty() && action.requires_context.is_empty(),"authorization_state":"not_inferred","manifest_sha256":entry.manifest_sha256,"executable_sha256":entry.executable_sha256}),
     )
 }
 pub fn actions(registry: &Registry, guide: &Guide, reason: Option<Trigger>) -> Result<Vec<Value>> {
@@ -110,5 +116,5 @@ pub fn local_failure(code: &str) -> Value {
     } else {
         vec!["zix", "capabilities", "--format", "json"]
     };
-    json!({"error":code,"diagnostic":{"schema":"zix-local-diagnostic/v1","state":"NeedsResolution","reason":reason,"summary":summary,"retry":"no_automatic_retry","next_inspection_argv":argv,"execution_authorized":false,"authority":"none"}})
+    json!({"error":code,"diagnostic":{"schema":"zix-local-diagnostic/v1","state":"NeedsResolution","reason":reason,"summary":summary,"retry":"no_automatic_retry","next_inspection_argv":argv,"authorization_state":"not_inferred","authority":"none"}})
 }
