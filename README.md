@@ -4,12 +4,14 @@ One local entry point for explicitly installed provider tools. Zix verifies a re
 
 ## Start
 
-Download the dispatcher from this repository and selected provider extensions from
-their owner releases. Use the GNU package for OS credential-store integration,
-or the static package when custody is not needed. Verify checksums and CI
-provenance before registration. [Installation](docs/install.md) includes an
-independent provider example; [operation guidance](docs/operation-guidance.md)
-explains Domain, Cloudflare and Microsoft handoffs.
+Use the [local setup guide](docs/setup.md) to install official packages, an
+isolated verification helper, selected extensions and optionally the tested
+0.5B example environment. No preinstalled `gh` or GitHub login is required.
+`zix-setup update` updates released packages while preserving extension state.
+The supported GNU setup host is Linux x86_64 with glibc 2.39+ (Ubuntu 24.04+,
+including WSL2), Python 3.12+ and OS libsecret. Credential enrollment additionally
+needs a real session Secret Service. [Manual installation](docs/install.md) and
+[operation guidance](docs/operation-guidance.md) describe the lower-level boundary.
 
 ```sh
 zix list

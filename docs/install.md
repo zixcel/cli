@@ -1,4 +1,17 @@
-# Install native release packages
+# Manual native release installation
+
+For first installation and latest-version updates, use the [local setup guide](setup.md).
+The manual commands below assume a recent attestation-capable GitHub CLI. After
+setup, select the private verified helper with:
+
+```sh
+gh() { "$HOME/.local/share/zix/setup/bin/gh" "$@"; }
+```
+
+The GNU custody binary currently requires glibc 2.39+ and libsecret. The musl core
+variant below does not provide `zix credential`. No GitHub login is required by
+the setup helper; manual `gh release download` may require its own GitHub login.
+
 
 Use a private download/install directory. Choose the release version explicitly when repeating a verified installation; omitting the tag below selects the latest official release. Do not run a source checkout or install a compiler as a substitute for a missing asset.
 
@@ -50,8 +63,9 @@ already verified executable; subsequent invocations see a complete old or new en
 Keep the previous immutable package for rollback and use a fresh inspection with
 `extensions replace` to select its reviewed hashes. Registration removal leaves files
 and credentials intact. Remove unreferenced package directories only after checking
-all registry references and any retained rollback evidence. No automatic downgrade,
-latest-version selection, dependency solver or package activation is introduced.
+all registry references and any retained rollback evidence. The registry commands do not select releases or solve dependencies. The separate
+setup helper selects stable native releases and invokes these same verified
+replacement operations; it never automatically downgrades.
 
 ## Inspect one Google service-account key
 

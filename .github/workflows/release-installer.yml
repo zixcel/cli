@@ -1,0 +1,89 @@
+name: Release local setup
+on:
+  push:
+    tags: ['installer/v*']
+permissions:
+  contents: read
+concurrency:
+  group: installer-release-${{ github.repository }}
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.repository == 'zixcel/cli' && github.event.repository.private == false
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      artifact: ${{ steps.upload.outputs.artifact-id }}
+      sha256: ${{ steps.hash.outputs.sha256 }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Require accepted main source and installer version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?branch=main&status=success&head_sha=$GITHUB_SHA&per_page=100" --jq '.workflow_runs[].head_sha' > "$RUNNER_TEMP/accepted"
+          grep -Fxq "$GITHUB_SHA" "$RUNNER_TEMP/accepted"
+          version="$(sed -n "s/^VERSION = '\([^']*\)'/\1/p" install/install.sh)"
+          test "$GITHUB_REF_NAME" = "installer/v$version"
+      - run: bash -n install/install.sh && python3 -m unittest discover -s install -p test_setup.py
+      - name: Prepare standalone script without provider credentials
+        id: hash
+        run: |
+          set -euo pipefail
+          mkdir "$RUNNER_TEMP/setup-release"
+          cp install/install.sh "$RUNNER_TEMP/setup-release/"
+          cd "$RUNNER_TEMP/setup-release"
+          sha256sum install.sh > SHA256SUMS.installer
+          echo "sha256=$(sha256sum install.sh | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        id: upload
+        with:
+          name: setup-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/setup-release/*
+          retention-days: 90
+          if-no-files-found: error
+  publish:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          artifact-ids: ${{ needs.prepare.outputs.artifact }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/setup-release
+      - uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8
+        with:
+          subject-path: ${{ runner.temp }}/setup-release/install.sh
+      - name: Publish once and verify public bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ needs.prepare.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/setup-release"
+          sha256sum --check SHA256SUMS.installer
+          test "$(sha256sum install.sh | cut -d' ' -f1)" = "$EXPECTED_SHA"
+          if gh api "repos/$GITHUB_REPOSITORY/releases/tags/$GITHUB_REF_NAME" > "$RUNNER_TEMP/existing" 2> "$RUNNER_TEMP/release-error"; then
+            echo 'Existing release: verify only.'
+          else
+            grep -q '(HTTP 404)' "$RUNNER_TEMP/release-error"
+            test "$GITHUB_RUN_ATTEMPT" = 1
+            gh release create "$GITHUB_REF_NAME" install.sh SHA256SUMS.installer --repo "$GITHUB_REPOSITORY" --verify-tag --target "$GITHUB_SHA" --latest=false --title "$GITHUB_REF_NAME" --notes "Standalone Linux x86_64 local setup; source $GITHUB_SHA. Bootstrap, package and update boundaries: docs/setup.md. SHA256 $EXPECTED_SHA."
+          fi
+          mkdir readback
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --pattern install.sh --pattern SHA256SUMS.installer --dir readback
+          (cd readback && sha256sum --check SHA256SUMS.installer)
+          test "$(sha256sum readback/install.sh | cut -d' ' -f1)" = "$EXPECTED_SHA"
