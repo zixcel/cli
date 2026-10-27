@@ -1,5 +1,5 @@
 import unittest
-from llm_view import gate, project, select
+from llm_view import gate, project, select, select_id
 
 
 class ViewTests(unittest.TestCase):
@@ -17,6 +17,13 @@ class ViewTests(unittest.TestCase):
     def test_registered_but_unapproved_choice_is_rejected(self):
         with self.assertRaises(ValueError):
             select({'choices': ['github'], 'gate': {'state': 'inspect_only'}}, {'choice': 'github'}, [])
+
+    def test_single_id_output_rejects_envelopes_extra_ids_and_shell_text(self):
+        view = {'choices': ['github'], 'gate': {'state': 'inspect_only'}}
+        self.assertEqual(select_id(view, 'github\n', ['github']), 'github')
+        for raw in ['github microsoft', '{"choice":"github"}', 'github;echo x']:
+            with self.assertRaises(ValueError):
+                select_id(view, raw, ['github'])
 
     def test_missing_context_and_denial_are_not_model_decisions(self):
         self.assertEqual(gate({'missing_arguments': ['mailbox']})['next'], 'collect_input')

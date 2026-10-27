@@ -58,6 +58,13 @@ def select(view, answer, allowed_choices):
     return answer['choice']
 
 
+def select_id(view, text, allowed_choices):
+    """A decoder may return one ID; the caller supplies the JSON envelope."""
+    if not isinstance(text, str) or len(text.encode()) > 128:
+        raise ValueError('invalid_model_output')
+    return select(view, {'choice': text.strip()}, allowed_choices)
+
+
 def main():
     try:
         raw = sys.stdin.buffer.read(65537)
