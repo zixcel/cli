@@ -3,9 +3,18 @@ use serde_json::Value;
 pub(super) fn classify(v: &Value) -> Trigger {
     let error = v["error"].as_str().unwrap_or("");
     let result = &v["result"];
-    if result["state"] == "outcome_unknown"
-        || error.contains("outcome_unknown")
+    if result["state"].as_str().is_some_and(|s| {
+        [
+            "outcome_unknown",
+            "verification_pending",
+            "pending_do_not_replay",
+            "unknown_do_not_replay",
+            "acknowledged_do_not_replay",
+        ]
+        .contains(&s)
+    }) || error.contains("outcome_unknown")
         || error.contains("unresolved")
+        || ["unknown_outcome", "unknown_result", "delete_rejected"].contains(&error)
     {
         return Trigger::OutcomeUnknown;
     }
@@ -13,6 +22,7 @@ pub(super) fn classify(v: &Value) -> Trigger {
         || error.ends_with("permission_denied")
         || error.contains("access_denied")
         || error == "authorization_denied"
+        || error == "forbidden"
         || reason(result, "permission_denied", 0)
     {
         return Trigger::Authorization;
@@ -22,11 +32,13 @@ pub(super) fn classify(v: &Value) -> Trigger {
         || error.contains("audience")
         || error.contains("expired_token")
         || error == "invalid_grant"
+        || ["auth_required", "unauthorized"].contains(&error)
         || reason(result, "authentication_rejected", 0)
     {
         return Trigger::Authentication;
     }
     if error.contains("missing")
+        || error.ends_with("_required")
         || error.contains("invalid_argument")
         || error.contains("invalid_configuration_selector")
     {

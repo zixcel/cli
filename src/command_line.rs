@@ -29,6 +29,10 @@ pub async fn run(args: &[String]) -> Result<bool> {
         return Ok(true);
     }
     let registry = Registry::load(&path)?;
+    if args.first().is_some_and(|a| a == "capabilities") && args.iter().any(|a| a == "--compact") {
+        discovery::compact(&registry, &args[1..])?;
+        return Ok(true);
+    }
     if args.is_empty() || ["help", "--help", "list", "capabilities"].contains(&args[0].as_str()) {
         if args.len() > 1 && args[1..] != ["--format", "json"] {
             return Err(Error("invalid_arguments"));

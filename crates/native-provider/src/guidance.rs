@@ -1,32 +1,11 @@
 //! Owner-authored operation meaning. No provider request, credential read or execution grant.
 use crate::{Error, Manifest, Result};
-use zix_operation_contracts::guidance::{Catalog, Guide, Requirement, RequirementKind};
+use zix_operation_contracts::guidance::{Catalog, Guide};
 pub fn catalog(manifest: &Manifest, overrides: &[u8]) -> Result<Catalog> {
     // Pretty owner source may exceed its compact wire representation.
     let value = zix_cli::api_spec::json::parse(overrides, 131072)?;
-    let mut entries: Vec<Guide> =
+    let entries: Vec<Guide> =
         serde_json::from_value(value).map_err(|_| Error("invalid_guidance"))?;
-    for command in &manifest.commands {
-        if !entries
-            .iter()
-            .any(|g| g.operation == command.id && g.selectors.is_empty())
-        {
-            entries.push(Guide {
-                operation: command.id.clone(),
-                selectors: Default::default(),
-                intent: command.id.replace('.', "_"),
-                keywords: vec![manifest.namespace.to_uppercase(), "OPERATION".into()],
-                requirements: command
-                    .required_permissions
-                    .iter()
-                    .map(|v| Requirement::new(RequirementKind::ProviderPermission, v.clone()))
-                    .collect(),
-                next_actions: vec![],
-                documentation: vec![],
-                required_arguments: vec![],
-            });
-        }
-    }
     let catalog = Catalog {
         schema: "zix-guidance-catalog/v1".into(),
         namespace: manifest.namespace.clone(),
@@ -91,7 +70,24 @@ pub fn validate_catalog(manifest: &Manifest, catalog: &Catalog) -> Result<()> {
             return Err(Error("invalid_guidance_selector"));
         }
     }
+    if manifest.commands.iter().any(|c| {
+        !catalog
+            .entries
+            .iter()
+            .any(|g| g.operation == c.id && g.selectors.is_empty())
+    }) {
+        return Err(Error("guidance_operation_missing"));
+    }
     Ok(())
+}
+
+/// Lift a read-only route adapter into the guided host without changing its API policy.
+pub fn from_provider(provider: &crate::Provider, overrides: &[u8]) -> Result<(Manifest, Catalog)> {
+    let mut manifest = provider.manifest().clone();
+    manifest.protocol = "zix-provider/v2".into();
+    decorate(&mut manifest, overrides)?;
+    let catalog = catalog(&manifest, overrides)?;
+    Ok((manifest, catalog))
 }
 
 mod diagnostic;

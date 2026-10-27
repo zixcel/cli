@@ -5,6 +5,15 @@ pub(crate) async fn describe(registry: &Registry, args: &[String]) -> Result<()>
     if args.len() < 2 {
         return Err(Error("invalid_arguments"));
     }
+    let compact = args.iter().filter(|a| a.as_str() == "--compact").count();
+    if compact > 1 {
+        return Err(Error("invalid_arguments"));
+    }
+    let args = args
+        .iter()
+        .filter(|a| a.as_str() != "--compact")
+        .cloned()
+        .collect::<Vec<_>>();
     let entry = registry.entry(&args[1])?;
     let mut operation = None;
     let mut selectors: BTreeMap<String, String> = BTreeMap::new();
@@ -43,6 +52,13 @@ pub(crate) async fn describe(registry: &Registry, args: &[String]) -> Result<()>
         let guide = catalog
             .select(&operation, &selectors)
             .ok_or(Error("guidance_operation_missing"))?;
+        if compact == 1 {
+            println!(
+                "{}",
+                super::brief::operation(registry, entry, &manifest, command, &catalog, guide)?
+            );
+            return Ok(());
+        }
         let required = command
             .arguments
             .iter()
@@ -55,6 +71,9 @@ pub(crate) async fn describe(registry: &Registry, args: &[String]) -> Result<()>
             json!({"schema":"zix-operation-guidance/v1","namespace":manifest.namespace,"version":manifest.version,"guide":guide,"effect":command.effect,"required_arguments":required,"resolved_actions":actions(registry,guide,None)?,"authority":"none","remote_requests":false,"credentials_read":false,"manifest_sha256":entry.manifest_sha256,"executable_sha256":entry.executable_sha256})
         );
     } else {
+        if compact == 1 {
+            return Err(Error("guidance_operation_required"));
+        }
         println!(
             "{}",
             json!({"schema":"zix-provider-guidance/v1","catalog":catalog,"authority":"none","remote_requests":false,"credentials_read":false})

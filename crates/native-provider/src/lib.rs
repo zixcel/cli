@@ -13,7 +13,7 @@ mod plan;
 mod profile;
 mod projection;
 mod validation;
-pub use entry::entry;
+pub use entry::{entry, entry_guided};
 pub use model::{Identity, Limits, Operation, Policy, Prepared, Projection, Request, Rule};
 pub use profile::Provider;
 pub use zix_cli::{Error, Result};

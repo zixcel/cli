@@ -1,4 +1,6 @@
+mod compact;
 use crate::{Result, registry::Registry};
+pub(crate) use compact::run as compact;
 use serde_json::{Value, json};
 pub fn capabilities(registry: &Registry) -> Result<Value> {
     let mut providers = Vec::new();

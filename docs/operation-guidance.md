@@ -111,3 +111,7 @@ become completion; unresolved writes retain readback/no-replay instructions.
 Run the actual dispatcher and independently packaged providers as consumers.
 LLM use of discovery is separately recorded from deterministic fixture tests;
 neither establishes live provider permissions or a general model success rate.
+
+SDK 0.5.0 requires explicit owner-authored base definitions for every operation.
+CLI 0.7.0 adds [compact discovery and preflight](llm-operations.md) for small-context
+models and rejects conditional input gaps before credential-store use.

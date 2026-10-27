@@ -49,7 +49,8 @@ outer request and explicitly removes the binding before using a retained v1 prof
 `serve_guided(manifest, catalog, handler)` adds closed keyword diagnostics and
 credential-free `--guidance` discovery. This is provider protocol v2, distinct
 from manifest schema v2 for operator writes. `guidance::catalog` validates
-owner-authored operation/selector requirements and supplies explicit defaults;
+owner-authored operation/selector requirements; SDK 0.5.0 rejects missing base
+definitions instead of synthesizing generic guidance;
 `guidance::decorate` projects the same entries into short command descriptions.
 Selector-specific required arguments stop before handler/credential/HTTP use.
 
@@ -57,3 +58,7 @@ Guidance is descriptive, not an execution grant or a semantic-language compiler.
 The dispatcher resolves related operation IDs against installed manifests and
 keeps missing context, scope/consent/role uncertainty and unknown outcomes explicit.
 See [the shared contract](../../docs/operation-guidance.md).
+
+`entry_guided(routes, policy, version, guidance)` lifts a reviewed GET-only
+route adapter into protocol v2. Its retained API-policy decoder remains v1; the
+outer guided host validates the native request before the explicit read adapter.
