@@ -7,6 +7,14 @@ on:
 permissions:
   contents: read
 jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - run: bash -n install/install.sh && python3 -m unittest discover -s install -p test_setup.py
   dependency-audit:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
